@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.logging.Level;
 
 import org.biojava.nbio.alignment.Alignments;
 import org.biojava.nbio.alignment.template.PairwiseSequenceScorer;
@@ -24,8 +25,7 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 			}
 		};
 	
-	private final PriorityQueue<PairwiseSequenceScorer<RNASequence, NucleotideCompound>> distances 
-		= new PriorityQueue<>(PAIRWISE_SCORE_COMPARATOR);
+	private PriorityQueue<PairwiseSequenceScorer<RNASequence, NucleotideCompound>> distances;
 
 	public MinimalDistanceHierachicalClusteringSpace(List<RNASequence> data) {
 		super(data);
@@ -33,25 +33,31 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 
 	@Override
 	protected void initSpace(List<RNASequence> data) {
+		LOG.log(Level.INFO, "Starting hierarchical clustering with minimal distance");
+		LOG.log(Level.INFO, "Initializing clusters");
 		data.parallelStream()
 			.map(sequence -> new Cluster<>(new HierarchicalClusteringMinimalDistance(), Arrays.asList(sequence)))
 			.forEach(cluster -> getClusters().add(cluster));
 		
+		LOG.log(Level.INFO, "Pairwise comparison of all points");
+		this.distances = new PriorityQueue<>(PAIRWISE_SCORE_COMPARATOR);
 		this.distances.addAll(
 				Alignments.getAllPairsScorers(data, AlignmentConstants.SCORER_TYPE, 
 						AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX));
 	}
 
 	@Override
-	public void nextIteration() {
-		PairwiseSequenceScorer<RNASequence, NucleotideCompound> current = this.distances.poll();
-		
-		if (current == null) {
-			return;
+	public double nextIteration() {
+		if (getClusters().size() == 1) {
+			return Double.NaN;
 		}
+		
+		PairwiseSequenceScorer<RNASequence, NucleotideCompound> current = this.distances.poll();
 		
 		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getQuery());
 		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getTarget());
+		
+		System.out.println(c1 + " " + c2);
 		
 		if (c1 != c2) {
 			getClusters().remove(c2);
@@ -60,6 +66,7 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 			// nextIteration() until two clusters are merged or singularity is reached
 			nextIteration();
 		}		
+		return c1.calcualteAverageClusterDistance();
 	}
 	
 	private Cluster<HierarchicalClusteringMinimalDistance> findContainingCluster(RNASequence sequence) {

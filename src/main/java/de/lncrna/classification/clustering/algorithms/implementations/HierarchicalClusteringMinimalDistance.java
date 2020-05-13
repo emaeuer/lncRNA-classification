@@ -30,7 +30,7 @@ public class HierarchicalClusteringMinimalDistance implements ClusteringAlgorith
 
 	@Override
 	public void mergeWithOther(Cluster<?> other) {
-		other.getAlgorithm().getSequences().forEach(this::addSequence);
+		this.sequences.addAll(other.getAlgorithm().getSequences());
 		other.clear();
 	}
 
