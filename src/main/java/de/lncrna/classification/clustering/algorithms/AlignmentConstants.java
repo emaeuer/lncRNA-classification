@@ -1,5 +1,6 @@
 package de.lncrna.classification.clustering.algorithms;
 
+import org.biojava.nbio.alignment.Alignments.PairwiseSequenceAlignerType;
 import org.biojava.nbio.alignment.Alignments.PairwiseSequenceScorerType;
 import org.biojava.nbio.alignment.SimpleGapPenalty;
 import org.biojava.nbio.alignment.SubstitutionMatrixHelper;
@@ -14,5 +15,7 @@ public interface AlignmentConstants {
 	public static final GapPenalty GAP_PENALTY = new SimpleGapPenalty(8, 1);
 	
 	public static final PairwiseSequenceScorerType SCORER_TYPE = PairwiseSequenceScorerType.GLOBAL;
+	
+	public static final PairwiseSequenceAlignerType ALIGNER_TYPE = PairwiseSequenceAlignerType.GLOBAL;;
 	
 }
