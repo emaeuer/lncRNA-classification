@@ -20,12 +20,12 @@ public class Launcher {
 
 		try {
 			sequences = FastaImporter.requestOrLoadRNASequences();
-		} catch (IOException var5) {
-			LOG.log(Level.WARNING, "Failed to get rna data", var5);
+		} catch (IOException e) {
+			LOG.log(Level.WARNING, "Failed to get rna data", e);
 			System.exit(0);
 		}
 
-		sequences = sequences.subList(0, 100);
+		sequences = sequences.subList(0, 30);
 		
 		DistanceCalculationCoordinator coordinator = new DistanceCalculationCoordinator(sequences);
 		coordinator.startDistanceCalculation();

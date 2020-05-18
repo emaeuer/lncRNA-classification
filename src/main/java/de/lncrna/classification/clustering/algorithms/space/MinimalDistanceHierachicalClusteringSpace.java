@@ -6,13 +6,11 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
 
-import org.biojava.nbio.alignment.Alignments;
 import org.biojava.nbio.alignment.template.PairwiseSequenceScorer;
 import org.biojava.nbio.core.sequence.RNASequence;
 import org.biojava.nbio.core.sequence.compound.NucleotideCompound;
 
 import de.lncrna.classification.clustering.Cluster;
-import de.lncrna.classification.clustering.algorithms.AlignmentConstants;
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
 
 public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClusteringMinimalDistance> {
@@ -41,9 +39,10 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 		
 		LOG.log(Level.INFO, "Pairwise comparison of all points");
 		this.distances = new PriorityQueue<>(PAIRWISE_SCORE_COMPARATOR);
-		this.distances.addAll(
-				Alignments.getAllPairsScorers(data, AlignmentConstants.SCORER_TYPE, 
-						AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX));
+		// TODO 
+		//		this.distances.addAll(
+//				Alignments.getAllPairsScorers(data, AlignmentConstants.SCORER_TYPE, 
+//						AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX));
 	}
 
 	@Override

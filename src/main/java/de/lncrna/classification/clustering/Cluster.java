@@ -1,14 +1,9 @@
 package de.lncrna.classification.clustering;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.biojava.nbio.alignment.Alignments;
-import org.biojava.nbio.alignment.template.PairwiseSequenceScorer;
 import org.biojava.nbio.core.sequence.RNASequence;
-import org.biojava.nbio.core.sequence.compound.NucleotideCompound;
 
-import de.lncrna.classification.clustering.algorithms.AlignmentConstants;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
 /**
@@ -57,13 +52,15 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	}
 	
 	public double calcualteAverageClusterDistance() {
-		List<PairwiseSequenceScorer<RNASequence,NucleotideCompound>> scores = Alignments.getAllPairsScorers(
-				new ArrayList<>(this.algorithm.getSequences()), AlignmentConstants.SCORER_TYPE, 
-				AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX);
-		
-		return scores.parallelStream()
-			.mapToDouble(PairwiseSequenceScorer::getDistance)
-			.average().orElse(0);
+		// TODO
+		return 0.0;
+//		List<PairwiseSequenceScorer<RNASequence,NucleotideCompound>> scores = Alignments.getAllPairsScorers(
+//				new ArrayList<>(this.algorithm.getSequences()), AlignmentConstants.SCORER_TYPE, 
+//				AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX);
+//		
+//		return scores.parallelStream()
+//			.mapToDouble(PairwiseSequenceScorer::getDistance)
+//			.average().orElse(0);
 	}
 	
 	@Override

@@ -11,12 +11,17 @@ import org.apache.commons.csv.CSVPrinter;
 public class DistanceCSVPrinter implements Closeable {
 	private final CSVPrinter printer;
 
-	public DistanceCSVPrinter(String fileName, String[] header) throws IOException {
-		this.printer = new CSVPrinter(new FileWriter(fileName), CSVFormat.DEFAULT.withHeader(header));
+	public DistanceCSVPrinter(String fileName, String[] header, boolean append) throws IOException {
+		if (append) {
+			this.printer = new CSVPrinter(new FileWriter(fileName, append), CSVFormat.EXCEL);
+		} else {
+			this.printer = new CSVPrinter(new FileWriter(fileName, append), CSVFormat.EXCEL.withHeader(header));
+		}
 	}
 
 	public void addRecord(List<Object> recordEntries) throws IOException {
 		this.printer.printRecord(recordEntries);
+		this.printer.flush();
 	}
 
 	@Override
