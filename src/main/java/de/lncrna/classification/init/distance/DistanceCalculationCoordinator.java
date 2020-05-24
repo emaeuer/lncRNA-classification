@@ -1,12 +1,10 @@
 package de.lncrna.classification.init.distance;
 
 import java.io.IOException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Queue;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -60,21 +58,32 @@ public class DistanceCalculationCoordinator {
 	
 	private final List<RNASequence> sequences;
 	
-	private ExecutorService executor;
+	private final ExecutorService executor;
+	
+	private final Map<Integer, List<Object>> finishedUnsafedLines = new ConcurrentHashMap<>();
+	
+	private volatile int numberOfRunningThreads = 0;
 
 	public DistanceCalculationCoordinator(List<RNASequence> sequences) {
+		// add one to the thread number (additional thread is used for printing)
+		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class) + 1;
+		
 		this.sequences = sequences;
-		this.executor = Executors.newFixedThreadPool(
-				PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class));
+		this.executor = Executors.newFixedThreadPool(threadNumber);
 	}
 
 	public void startDistanceCalculation() {
 		int startIndex = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_NEXT_RECORD, Integer.class);
 		
-		try (DistanceCSVPrinter printer = initPrinter(startIndex != 0)) {			
+		try {			
 			this.status = new ProgressBarHelper(this.sequences.size(), startIndex);
-						
-			calculateDistances(printer, startIndex);
+			
+			Future<?> printerFinished = this.executor.submit(() -> printAvailableLines(startIndex));			
+			
+			calculateDistances(startIndex);
+			
+			// Wait until the printer thread finishes
+			printerFinished.get();
 			
 			this.executor.shutdownNow();
 			this.status.stop();
@@ -98,37 +107,56 @@ public class DistanceCalculationCoordinator {
 		return printer;
 	}
 	
-	private void calculateDistances(DistanceCSVPrinter printer, int currentLine) throws IOException, InterruptedException, ExecutionException {
-		int threadCount = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
+	private void calculateDistances(int currentLine) throws IOException, InterruptedException, ExecutionException {
+		int maxThreadCount = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
+		int waitingTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
 		
-		Queue<Future<Entry<Integer, List<Object>>>> awaitingResults = new LinkedList<>();
-		
-		// do until no sequences are remaining and all threads are finished
-		while (currentLine < this.sequences.size() || !awaitingResults.isEmpty()) {
-			if (awaitingResults.size() < threadCount && currentLine < this.sequences.size()) {
+		// do until no sequences are remaining
+		while (currentLine < this.sequences.size()) {
+			if (this.numberOfRunningThreads < maxThreadCount) {
 				// only run if threads are available and sequences are remaining
-				startThredForNextRecord(awaitingResults, currentLine);
+				startThreadForNextRecord(currentLine);
 				currentLine++;
 			} else {
-				// currently no thread is available or all sequences were processed --> wait for termination of threat(s)
-				waitForTerminationOfThread(awaitingResults, printer);
+				// currently no thread is available or all sequences were processed 
+				// --> wait refreshTime until next iteration
+				Thread.sleep(waitingTime);
 			}
 		}
 	}
 
-	private void startThredForNextRecord(Queue<Future<Entry<Integer, List<Object>>>> awaitingResults, final int line) {
-		awaitingResults.add(this.executor.submit(() -> createRecord(line)));
+	private void printAvailableLines(int nextLineToPrint) {
+		int waitingTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
+		
+		try (DistanceCSVPrinter printer = initPrinter(nextLineToPrint != 0)) {
+			while (nextLineToPrint < this.sequences.size()) {
+				nextLineToPrint = checkDataAvailableForPrinting(printer, nextLineToPrint);
+				Thread.sleep(waitingTime);
+			}
+		} catch (Exception e) {
+			LOG.log(Level.WARNING, "Unexpected error while trying to print", e);
+		}
+	}
+
+	private void startThreadForNextRecord(final int line) {
+		this.executor.execute(() -> createRecord(line));
+		changeNumberOfRunningThreads(true);
 	}
 	
-	private void waitForTerminationOfThread(Queue<Future<Entry<Integer, List<Object>>>> awaitingResults, DistanceCSVPrinter printer) throws IOException, InterruptedException, ExecutionException {
-		Entry<Integer, List<Object>> result = awaitingResults.poll().get();
-		// Waits until result is available
-		printer.addRecord(result.getValue());
-		PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.DISTANCE_CALCULATION_NEXT_RECORD, result.getKey() + 1);
+	private int checkDataAvailableForPrinting(DistanceCSVPrinter printer, int nextLineToPrint) throws IOException, InterruptedException, ExecutionException {
+		// print lines in line order
+		while (this.finishedUnsafedLines.containsKey(nextLineToPrint)) {
+			// the next necessary line is available and will be printed
+			List<Object> lineToPrint = this.finishedUnsafedLines.remove(nextLineToPrint);
+			printer.addRecord(lineToPrint);
+			nextLineToPrint++;
+		}
+		PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.DISTANCE_CALCULATION_NEXT_RECORD, nextLineToPrint);
+		return nextLineToPrint;
 	}
 
 
-	private Entry<Integer, List<Object>> createRecord(int i) {
+	private void createRecord(int i) {
 		List<Object> record = new ArrayList<>();
 		RNASequence current = this.sequences.get(i);		
 		
@@ -142,7 +170,16 @@ public class DistanceCalculationCoordinator {
 		record.add(0);
 		this.status.next();
 		
-		return new AbstractMap.SimpleEntry<>(i, record);
+		this.finishedUnsafedLines.put(i, record);
+		this.changeNumberOfRunningThreads(false);
+	}
+	
+	private synchronized void changeNumberOfRunningThreads(boolean increment) {
+		if (increment) {
+			this.numberOfRunningThreads++;
+		} else {
+			this.numberOfRunningThreads--;
+		}
 	}
 
 	private Object calculateDistance(RNASequence seq1, RNASequence seq2) {

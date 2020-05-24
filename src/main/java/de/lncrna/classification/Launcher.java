@@ -25,7 +25,7 @@ public class Launcher {
 			System.exit(0);
 		}
 
-		sequences = sequences.subList(0, 30);
+		sequences = sequences.subList(0, 20);
 		
 		DistanceCalculationCoordinator coordinator = new DistanceCalculationCoordinator(sequences);
 		coordinator.startDistanceCalculation();
