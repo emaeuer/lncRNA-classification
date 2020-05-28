@@ -1,8 +1,7 @@
 package de.lncrna.classification.clustering;
 
+import java.util.Collection;
 import java.util.List;
-
-import org.biojava.nbio.core.sequence.RNASequence;
 
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
@@ -18,7 +17,7 @@ public class Cluster<T extends ClusteringAlgorithm> {
 
 	private final T algorithm;
 	
-	public Cluster(final T algorithm, List<RNASequence> sequences) {
+	public Cluster(final T algorithm, List<String> sequences) {
 		this.algorithm = algorithm;
 		this.algorithm.initCluster(sequences);
 	}
@@ -27,7 +26,7 @@ public class Cluster<T extends ClusteringAlgorithm> {
 		this.algorithm.mergeWithOther(other);
 	}
 	
-	public void addLncRNA(RNASequence data) {
+	public void addLncRNA(String data) {
 		this.algorithm.addSequence(data);
 	}
 
@@ -35,7 +34,7 @@ public class Cluster<T extends ClusteringAlgorithm> {
 		return this.algorithm.getSequences().size();
 	}
 	
-	public boolean containsSequence(RNASequence sequence) {
+	public boolean containsSequence(String sequence) {
 		return this.algorithm.getSequences().contains(sequence);
 	}
 	
@@ -47,30 +46,32 @@ public class Cluster<T extends ClusteringAlgorithm> {
 		return this.algorithm;
 	}
 	
+	public Collection<String> getSequences() {
+		return this.algorithm.getSequences();
+	}
+	
 	public void clear() {
 		this.getAlgorithm().getSequences().clear();
 	}
 	
 	public double calcualteAverageClusterDistance() {
-		// TODO
-		return 0.0;
-//		List<PairwiseSequenceScorer<RNASequence,NucleotideCompound>> scores = Alignments.getAllPairsScorers(
-//				new ArrayList<>(this.algorithm.getSequences()), AlignmentConstants.SCORER_TYPE, 
-//				AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX);
-//		
-//		return scores.parallelStream()
-//			.mapToDouble(PairwiseSequenceScorer::getDistance)
-//			.average().orElse(0);
+		long distanceSum = 0;
+		for (int i = 0; i < getClusterSize(); i++) {
+			for (int j = i + 1; j < getClusterSize(); j++) {
+				
+			}		
+		}
+		return distanceSum / getClusterSize();
 	}
 	
 	@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder("Cluster[");
-			getAlgorithm().getSequences()
-				.forEach(sequence -> builder.append(sequence.getDescription() + ", "));
-			builder.replace(builder.length() - 2, builder.length(), "");
-			builder.append("]");
-			return builder.toString();
-		}
+	public String toString() {
+		StringBuilder builder = new StringBuilder("Cluster[");
+		getAlgorithm().getSequences()
+			.forEach(sequence -> builder.append(sequence + ", "));
+		builder.replace(builder.length() - 2, builder.length(), "");
+		builder.append("]");
+		return builder.toString();
+	}
 	
 }

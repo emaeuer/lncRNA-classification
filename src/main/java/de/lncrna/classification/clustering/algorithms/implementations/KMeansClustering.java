@@ -3,8 +3,6 @@ package de.lncrna.classification.clustering.algorithms.implementations;
 import java.util.Collection;
 import java.util.List;
 
-import org.biojava.nbio.core.sequence.RNASequence;
-
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
@@ -29,19 +27,19 @@ public class KMeansClustering implements ClusteringAlgorithm {
 	}
 
 	@Override
-	public void addSequence(RNASequence data) {
+	public void addSequence(String data) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public Collection<RNASequence> getSequences() {
+	public Collection<String> getSequences() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void initCluster(List<RNASequence> sequences) {
+	public void initCluster(List<String> sequences) {
 		// TODO Auto-generated method stub
 		
 	}

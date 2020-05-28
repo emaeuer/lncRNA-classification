@@ -6,74 +6,66 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
 
-import org.biojava.nbio.alignment.template.PairwiseSequenceScorer;
-import org.biojava.nbio.core.sequence.RNASequence;
-import org.biojava.nbio.core.sequence.compound.NucleotideCompound;
+import com.google.common.collect.Table.Cell;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
+import de.lncrna.classification.data.DistanceMatrix;
 
 public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClusteringMinimalDistance> {
-	
-	private static final Comparator<PairwiseSequenceScorer<RNASequence, NucleotideCompound>> PAIRWISE_SCORE_COMPARATOR 
-		= new Comparator<PairwiseSequenceScorer<RNASequence,NucleotideCompound>>() {
-			@Override
-			public int compare(PairwiseSequenceScorer<RNASequence, NucleotideCompound> o1, PairwiseSequenceScorer<RNASequence, NucleotideCompound> o2) {
-				return Double.compare(o1.getDistance(), o2.getDistance());
-			}
-		};
-	
-	private PriorityQueue<PairwiseSequenceScorer<RNASequence, NucleotideCompound>> distances;
 
-	public MinimalDistanceHierachicalClusteringSpace(List<RNASequence> data) {
-		super(data);
+	private static final Comparator<Cell<String, String, Float>> CELL_COMPARATOR = 
+			(Cell<String, String, Float> c1, Cell<String, String, Float> c2) -> Float.compare(c1.getValue(), c2.getValue());
+	
+	private PriorityQueue<Cell<String, String, Float>> orderedDistances;
+	
+	public MinimalDistanceHierachicalClusteringSpace(DistanceMatrix distances) {
+		super(distances);
 	}
 
 	@Override
-	protected void initSpace(List<RNASequence> data) {
+	protected void initSpace(DistanceMatrix distances) {
 		LOG.log(Level.INFO, "Starting hierarchical clustering with minimal distance");
 		LOG.log(Level.INFO, "Initializing clusters");
-		data.parallelStream()
+		
+		List<String> sequenceNames = distances.getSequenceNames();
+		
+		sequenceNames.parallelStream()
 			.map(sequence -> new Cluster<>(new HierarchicalClusteringMinimalDistance(), Arrays.asList(sequence)))
-			.forEach(cluster -> getClusters().add(cluster));
+			.forEach(cluster -> getClusters().add(cluster));		
 		
 		LOG.log(Level.INFO, "Pairwise comparison of all points");
-		this.distances = new PriorityQueue<>(PAIRWISE_SCORE_COMPARATOR);
-		// TODO 
-		//		this.distances.addAll(
-//				Alignments.getAllPairsScorers(data, AlignmentConstants.SCORER_TYPE, 
-//						AlignmentConstants.GAP_PENALTY, AlignmentConstants.SUBSTITUTION_MATRIX));
+		// Data is automatically sorted in PriorityQueue
+		this.orderedDistances = new PriorityQueue<>(CELL_COMPARATOR);
+		this.orderedDistances.addAll(distances.getAllCells());
 	}
 
 	@Override
-	public double nextIteration() {
+	public void nextIteration() {
 		if (getClusters().size() == 1) {
-			return Double.NaN;
+			return;
 		}
 		
-		PairwiseSequenceScorer<RNASequence, NucleotideCompound> current = this.distances.poll();
+		Cell<String, String, Float> current = this.orderedDistances.poll();
 		
-		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getQuery());
-		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getTarget());
-		
-		System.out.println(c1 + " " + c2);
+		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getRowKey());
+		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getColumnKey());
 		
 		if (c1 != c2) {
+			System.out.println(c1 + " " + c2);
 			getClusters().remove(c2);
-			c1.mergeWithOther(c2);	
+			c1.mergeWithOther(c2);
 		} else {
 			// nextIteration() until two clusters are merged or singularity is reached
 			nextIteration();
 		}		
-		return c1.calcualteAverageClusterDistance();
 	}
 	
-	private Cluster<HierarchicalClusteringMinimalDistance> findContainingCluster(RNASequence sequence) {
+	private Cluster<HierarchicalClusteringMinimalDistance> findContainingCluster(String sequence) {
 		return getClusters().parallelStream()
 			.filter(c -> c.containsSequence(sequence))
 			.findFirst()
 			.orElse(null);
 	}
-
 	
 }

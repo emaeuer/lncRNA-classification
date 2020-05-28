@@ -16,9 +16,9 @@ public class DistanceCalculatorUtil {
 	
 	private static String alignerType = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.PAIRWISE_SEQUENCE_ALIGNER_TYPE, String.class);
 	
-	public static double calculateDistance(RNASequence seq1, RNASequence seq2) {
-		return Alignments.getPairwiseAligner(seq1, seq2, PairwiseSequenceAlignerType.valueOf(alignerType),
-				new SimpleGapPenalty(gop, gep), SubstitutionMatrixHelper.getNuc4_2()).getDistance();
+	public static float calculateDistance(RNASequence seq1, RNASequence seq2) {
+		return Double.valueOf(Alignments.getPairwiseAligner(seq1, seq2, PairwiseSequenceAlignerType.valueOf(alignerType),
+				new SimpleGapPenalty(gop, gep), SubstitutionMatrixHelper.getNuc4_2()).getDistance()).floatValue();
 	}
 	
 }

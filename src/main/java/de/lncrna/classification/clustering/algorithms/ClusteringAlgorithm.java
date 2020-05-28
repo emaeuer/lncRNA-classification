@@ -3,8 +3,6 @@ package de.lncrna.classification.clustering.algorithms;
 import java.util.Collection;
 import java.util.List;
 
-import org.biojava.nbio.core.sequence.RNASequence;
-
 import de.lncrna.classification.clustering.Cluster;
 
 /**
@@ -17,12 +15,12 @@ public interface ClusteringAlgorithm {
 	
 	public double distanceTo(Cluster<?> cluster);
 	
-	public void initCluster(List<RNASequence> sequences);
+	public void initCluster(List<String> sequences);
 	
 	public void mergeWithOther(Cluster<?> cluster);
 	
-	public void addSequence(RNASequence data);
+	public void addSequence(String data);
 	
-	public Collection<RNASequence> getSequences(); 
+	public Collection<String> getSequences(); 
 	
 }

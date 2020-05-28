@@ -1,4 +1,4 @@
-package de.lncrna.classification.init.distance;
+package de.lncrna.classification.util.csv;
 
 import java.io.Closeable;
 import java.io.FileWriter;
@@ -9,6 +9,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
 public class DistanceCSVPrinter implements Closeable {
+	
 	private final CSVPrinter printer;
 
 	public DistanceCSVPrinter(String fileName, String[] header, boolean append) throws IOException {

@@ -24,11 +24,6 @@
 			<version>4.0.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.biojava</groupId>
-			<artifactId>biojava-structure</artifactId>
-			<version>5.3.0</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
 			<version>1.8</version>
@@ -42,6 +37,11 @@
 			<groupId>me.tongfei</groupId>
 			<artifactId>progressbar</artifactId>
 			<version>0.8.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava</artifactId>
+		    <version>29.0-jre</version>
 		</dependency>
 	</dependencies>
 </project>

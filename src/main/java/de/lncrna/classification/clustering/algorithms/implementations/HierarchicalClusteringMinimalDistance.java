@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.biojava.nbio.core.sequence.RNASequence;
-
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
@@ -20,7 +18,7 @@ import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
  */
 public class HierarchicalClusteringMinimalDistance implements ClusteringAlgorithm {
 
-	private final Set<RNASequence> sequences = new HashSet<>();
+	private final Set<String> sequences = new HashSet<>();
 	
 	@Override
 	public double distanceTo(Cluster<?> cluster) {
@@ -35,17 +33,17 @@ public class HierarchicalClusteringMinimalDistance implements ClusteringAlgorith
 	}
 
 	@Override
-	public void addSequence(RNASequence data) {
+	public void addSequence(String data) {
 		this.sequences.add(data);		
 	}
 
 	@Override
-	public Collection<RNASequence> getSequences() {
+	public Collection<String> getSequences() {
 		return this.sequences;
 	}
 
 	@Override
-	public void initCluster(List<RNASequence> sequences) {
+	public void initCluster(List<String> sequences) {
 		this.sequences.addAll(sequences);		
 	}
 	

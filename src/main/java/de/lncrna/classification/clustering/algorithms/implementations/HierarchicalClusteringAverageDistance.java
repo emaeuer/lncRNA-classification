@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.biojava.nbio.core.sequence.RNASequence;
-
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
@@ -19,7 +17,7 @@ import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
  */
 public class HierarchicalClusteringAverageDistance implements ClusteringAlgorithm {
 	
-	private final List<RNASequence> sequences = new ArrayList<>();
+	private final List<String> sequences = new ArrayList<>();
 	
 	@Override
 	public double distanceTo(Cluster<?> cluster) {
@@ -34,18 +32,18 @@ public class HierarchicalClusteringAverageDistance implements ClusteringAlgorith
 	}
 
 	@Override
-	public void addSequence(RNASequence data) {
+	public void addSequence(String data) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public Collection<RNASequence> getSequences() {
+	public Collection<String> getSequences() {
 		return sequences;
 	}
 
 	@Override
-	public void initCluster(List<RNASequence> sequences) {
+	public void initCluster(List<String> sequences) {
 		// TODO Auto-generated method stub
 		
 	}

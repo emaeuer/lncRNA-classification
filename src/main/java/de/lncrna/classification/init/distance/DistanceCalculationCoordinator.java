@@ -13,12 +13,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.biojava.nbio.core.sequence.RNASequence;
 
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeys;
+import de.lncrna.classification.util.csv.DistanceCSVPrinter;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
@@ -90,7 +90,7 @@ public class DistanceCalculationCoordinator {
 			LOG.log(Level.INFO, "Finished calculation of rna distances");
 		} catch (Exception e) {
 			LOG.log(Level.WARNING, "Failed to calculate distances");
-			throw new UnhandledException("An unexpected error occured during distance calculation", e);
+			throw new RuntimeException("An unexpected error occured during distance calculation", e);
 		}
 	}
 
