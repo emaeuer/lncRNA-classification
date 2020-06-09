@@ -10,7 +10,7 @@ import com.google.common.collect.Table.Cell;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
-import de.lncrna.classification.data.DistanceMatrix;
+import de.lncrna.classification.util.data.DistanceMatrix;
 
 public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClusteringMinimalDistance> {
 

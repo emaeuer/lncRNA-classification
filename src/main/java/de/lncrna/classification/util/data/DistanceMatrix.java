@@ -1,5 +1,6 @@
-package de.lncrna.classification.data;
+package de.lncrna.classification.util.data;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,15 +17,20 @@ import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.Tables;
 
+import de.lncrna.classification.util.PropertyHandler;
+import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
+
 public class DistanceMatrix {
 
 	private final Table<String, String, Float> distanceMatrix = HashBasedTable.create();
 	
 	private List<String> header = new ArrayList<>();
 	
-	public static DistanceMatrix initFromCSV(String fileName) throws IOException {
+	public static DistanceMatrix initFromCSV() throws IOException {
+		File csvFile = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FILE_LOCATION, File.class);
+		
 		DistanceMatrix matrix = new DistanceMatrix();
-		CSVParser reader = new CSVParser(new FileReader(fileName), CSVFormat.EXCEL);
+		CSVParser reader = new CSVParser(new FileReader(csvFile), CSVFormat.EXCEL);
 		
 		Iterator<CSVRecord> lines = reader.iterator();
 		if (lines.hasNext()) {

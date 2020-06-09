@@ -7,19 +7,19 @@ import de.lncrna.classification.clustering.algorithms.implementations.KMeansClus
 
 public enum ImplementedClusteringAlgorithms {
 
-	HIERARCHICAL_CLUSTERING_AVERAGE_DISTANCE(new HierarchicalClusteringAverageDistance()),
-	HIERARCHICAL_CLUSTERING_MINIMAL_DISTANCE(new HierarchicalClusteringMinimalDistance()),
-	HIERARCHICAL_CLUSTERING_MAXIMAL_DISTANCE(new HierarchicalClusteringMaximalDistance()),
-	K_MEANS(new KMeansClustering());
+	HIERARCHICAL_CLUSTERING_AVERAGE_DISTANCE(HierarchicalClusteringAverageDistance.class),
+	HIERARCHICAL_CLUSTERING_MINIMAL_DISTANCE(HierarchicalClusteringMinimalDistance.class),
+	HIERARCHICAL_CLUSTERING_MAXIMAL_DISTANCE(HierarchicalClusteringMaximalDistance.class),
+	K_MEANS(KMeansClustering.class);
 	
-	private final ClusteringAlgorithm algorithm;
+	private final Class<? extends ClusteringAlgorithm> algorithmType;
 
-	ImplementedClusteringAlgorithms(ClusteringAlgorithm algorithm) {
-		this.algorithm = algorithm;
+	ImplementedClusteringAlgorithms(Class<? extends ClusteringAlgorithm> algorithm) {
+		this.algorithmType = algorithm;
 	}
 
-	public ClusteringAlgorithm getImplementation() {
-		return algorithm;
+	public Class<? extends ClusteringAlgorithm> getImplementationType() {
+		return algorithmType;
 	}
 	
 }

@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
-import de.lncrna.classification.data.DistanceMatrix;
+import de.lncrna.classification.util.data.DistanceMatrix;
 
 public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 

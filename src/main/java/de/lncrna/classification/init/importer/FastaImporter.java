@@ -17,7 +17,7 @@ import org.biojava.nbio.core.sequence.RNASequence;
 import org.biojava.nbio.core.sequence.io.FastaReaderHelper;
 
 import de.lncrna.classification.util.PropertyHandler;
-import de.lncrna.classification.util.PropertyKeys;
+import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 
 public class FastaImporter {
 
@@ -29,13 +29,13 @@ public class FastaImporter {
 	public static List<RNASequence> requestOrLoadRNASequences() throws IOException {
 		LOG.log(Level.INFO, "Collecting rna data");
 		
-		String fastaFileLocation = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_FILE_LOCATION, String.class);
+		File fastaFile = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_FILE_LOCATION, File.class);
 		
-		if (!new File(fastaFileLocation).isFile()) {
+		if (!fastaFile.isFile()) {
 			downloadFastaFromURL(PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_DOWNLOAD_URL, String.class));
 		}
 					
-		return readFastaFromFile(fastaFileLocation)
+		return readFastaFromFile(fastaFile)
 				.entrySet()
 				.parallelStream()
 				.map(entry -> {
@@ -46,9 +46,9 @@ public class FastaImporter {
 				.collect(Collectors.toList());
 	}
 
-	private static LinkedHashMap<String, DNASequence> readFastaFromFile(String path) throws IOException {
+	private static LinkedHashMap<String, DNASequence> readFastaFromFile(File fastaFile) throws IOException {
 		LOG.log(Level.INFO, "Reading FASTA-file");
-		try (InputStream input = new FileInputStream(path)) {
+		try (InputStream input = new FileInputStream(fastaFile)) {
 			return FastaReaderHelper.readFastaDNASequence(input);
 		}
 	}

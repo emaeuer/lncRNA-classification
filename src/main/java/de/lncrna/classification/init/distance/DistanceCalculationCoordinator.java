@@ -16,8 +16,9 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.biojava.nbio.core.sequence.RNASequence;
 
+import de.lncrna.classification.init.distance.calculation.DistanceCalculator;
 import de.lncrna.classification.util.PropertyHandler;
-import de.lncrna.classification.util.PropertyKeys;
+import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 import de.lncrna.classification.util.csv.DistanceCSVPrinter;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
@@ -63,17 +64,20 @@ public class DistanceCalculationCoordinator {
 	private final Map<Integer, List<Object>> finishedUnsafedLines = new ConcurrentHashMap<>();
 	
 	private volatile int numberOfRunningThreads = 0;
+	
+	private final DistanceCalculator distanceCalculator;
 
-	public DistanceCalculationCoordinator(List<RNASequence> sequences) {
+	public DistanceCalculationCoordinator(List<RNASequence> sequences, DistanceCalculator distanceCalculator) {
 		// add one to the thread number (additional thread is used for printing)
 		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class) + 1;
 		
 		this.sequences = sequences;
 		this.executor = Executors.newFixedThreadPool(threadNumber);
+		this.distanceCalculator = distanceCalculator;
 	}
 
 	public void startDistanceCalculation() {
-		int startIndex = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_NEXT_RECORD, Integer.class);
+		int startIndex = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.NEXT_RECORD, Integer.class);
 		
 		try {			
 			this.status = new ProgressBarHelper(this.sequences.size(), startIndex);
@@ -92,19 +96,6 @@ public class DistanceCalculationCoordinator {
 			LOG.log(Level.WARNING, "Failed to calculate distances");
 			throw new RuntimeException("An unexpected error occured during distance calculation", e);
 		}
-	}
-
-	private DistanceCSVPrinter initPrinter(boolean append) throws IOException {
-		String csvFileLocation = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_FILE_LOCATION, String.class);
-		DistanceCSVPrinter printer = new DistanceCSVPrinter(csvFileLocation, this.getHeader(), append);
-		
-		if (append) {
-			LOG.log(Level.INFO, "Continuing calculation of rna distances");
-		} else {
-			LOG.log(Level.INFO, "Starting calculation of rna distances");
-		}	
-		
-		return printer;
 	}
 	
 	private void calculateDistances(int currentLine) throws IOException, InterruptedException, ExecutionException {
@@ -137,6 +128,19 @@ public class DistanceCalculationCoordinator {
 			LOG.log(Level.WARNING, "Unexpected error while trying to print", e);
 		}
 	}
+	
+	private DistanceCSVPrinter initPrinter(boolean append) throws IOException {
+		String csvFileLocation = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FILE_LOCATION, String.class);
+		DistanceCSVPrinter printer = new DistanceCSVPrinter(csvFileLocation, this.getHeader(), append);
+		
+		if (append) {
+			LOG.log(Level.INFO, "Continuing calculation of rna distances(" + this.distanceCalculator.getDistanceProperties().name() + ")");
+		} else {
+			LOG.log(Level.INFO, "Starting calculation of rna distances (" + this.distanceCalculator.getDistanceProperties().name() + ")");
+		}	
+		
+		return printer;
+	}
 
 	private void startThreadForNextRecord(final int line) {
 		this.executor.execute(() -> createRecord(line));
@@ -151,7 +155,7 @@ public class DistanceCalculationCoordinator {
 			printer.addRecord(lineToPrint);
 			nextLineToPrint++;
 		}
-		PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.DISTANCE_CALCULATION_NEXT_RECORD, nextLineToPrint);
+		PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.NEXT_RECORD, nextLineToPrint);
 		return nextLineToPrint;
 	}
 
@@ -184,7 +188,7 @@ public class DistanceCalculationCoordinator {
 
 	private Object calculateDistance(RNASequence seq1, RNASequence seq2) {
 		this.status.next();
-		return DistanceCalculatorUtil.calculateDistance(seq1, seq2);
+		return this.distanceCalculator.getDistance(seq1, seq2);
 	}
 
 	private String[] getHeader() {
