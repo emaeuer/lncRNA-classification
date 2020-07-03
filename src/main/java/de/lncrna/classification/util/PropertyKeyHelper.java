@@ -10,6 +10,12 @@ public class PropertyKeyHelper {
 		DISTANCE_CALCULATION_WAITING_TIME(false), 
 		FILE_LOCATION(true),
 		NEXT_RECORD(true),
+		INTRON_API_URL_PATTERN(false),
+		
+		// Neo4J-Properties
+		NEO4J_LOCATION(false),
+		NEO4J_DATABASE_NAME(false),
+		NEO4J_CONFIG(false),
 		
 		// Needleman-Wunsch specific properties 
 		PAIRWISE_SEQUENCE_ALIGNER_TYPE(false),
@@ -17,7 +23,10 @@ public class PropertyKeyHelper {
 		GAP_CLOSE_PENALTY(false), 
 		
 		// NGramDistance specific properties
-		N_GRAM_LENGTH(false);
+		N_GRAM_LENGTH(false),
+		
+		// BlastDistance specific properties
+		BLAST_RESULT_FILE_LOCATION(false);
 
 		private final boolean prefixNecessary;
 		

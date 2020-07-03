@@ -5,13 +5,13 @@ import de.lncrna.classification.clustering.algorithms.implementations.Hierarchic
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMaximalDistance;
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
 import de.lncrna.classification.clustering.algorithms.implementations.KMeansClustering;
-import de.lncrna.classification.util.data.DistanceMatrix;
+import de.lncrna.classification.init.distance.DistanceProperties;
 
 public class ClusterSpaceFactory {
 
-	public static  AbstractClusteringSpace<? extends ClusteringAlgorithm> createClusterSpace(Class<? extends ClusteringAlgorithm> clusterType, DistanceMatrix matrix) {
+	public static  AbstractClusteringSpace<? extends ClusteringAlgorithm> createClusterSpace(Class<? extends ClusteringAlgorithm> clusterType, DistanceProperties distanceProp) {
 		if (HierarchicalClusteringMinimalDistance.class == clusterType) {
-			return new MinimalDistanceHierachicalClusteringSpace(matrix);
+			return new MinimalDistanceHierachicalClusteringSpace(distanceProp);
 		} else if (HierarchicalClusteringMaximalDistance.class == clusterType) {
 			return null;
 		} else if (HierarchicalClusteringAverageDistance.class == clusterType) {

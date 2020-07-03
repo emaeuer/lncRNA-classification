@@ -1,57 +1,26 @@
 package de.lncrna.classification.init.distance;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.SubmissionPublisher;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.biojava.nbio.core.sequence.RNASequence;
 
+import de.lncrna.classification.cli.ProgressBarHelper;
+import de.lncrna.classification.db.Neo4JCypherQueries;
 import de.lncrna.classification.init.distance.calculation.DistanceCalculator;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
-import de.lncrna.classification.util.csv.DistanceCSVPrinter;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
+import de.lncrna.classification.util.data.DistanceDAO;
 
-
-public class DistanceCalculationCoordinator {
-	
-	private class ProgressBarHelper {
-		
-		private final ProgressBar bar;
-		
-		public ProgressBarHelper(int listSize, int startIndex) {
-			long totalNumberOfCalculations = (Long.valueOf(listSize) * (listSize + 1)) / 2;
-			this.bar = new ProgressBarBuilder()
-					.setInitialMax(totalNumberOfCalculations)
-					.setTaskName("Calculation")
-					.setStyle(ProgressBarStyle.ASCII)
-					.setUpdateIntervalMillis(2000)
-					.showSpeed()
-					.build();
-			this.bar.stepTo(IntStream.range(0, startIndex).sum());
-		}
-		
-		public void stop() {
-			this.bar.close();
-		}
-
-		public synchronized void next() {
-			this.bar.step();
-		}
-		
-	}
+public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 	
 	private static final Logger LOG = Logger.getLogger("logger");
 	
@@ -61,39 +30,46 @@ public class DistanceCalculationCoordinator {
 	
 	private final ExecutorService executor;
 	
-	private final Map<Integer, List<Object>> finishedUnsafedLines = new ConcurrentHashMap<>();
-	
 	private volatile int numberOfRunningThreads = 0;
 	
 	private final DistanceCalculator distanceCalculator;
 
+	private final SubmissionPublisher<DistanceDAO> publisher = new SubmissionPublisher<>();
+	
+	
 	public DistanceCalculationCoordinator(List<RNASequence> sequences, DistanceCalculator distanceCalculator) {
-		// add one to the thread number (additional thread is used for printing)
-		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class) + 1;
+		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
 		
 		this.sequences = sequences;
 		this.executor = Executors.newFixedThreadPool(threadNumber);
 		this.distanceCalculator = distanceCalculator;
 	}
-
+	
 	public void startDistanceCalculation() {
 		int startIndex = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.NEXT_RECORD, Integer.class);
 		
+		if (startIndex != 0) {
+			LOG.log(Level.INFO, "Continuing calculation of rna distances(" + this.distanceCalculator.getDistanceProperties().name() + ")");
+		} else {
+			LOG.log(Level.INFO, "Starting calculation of rna distances (" + this.distanceCalculator.getDistanceProperties().name() + ")");
+		}	
+		
 		try {			
-			this.status = new ProgressBarHelper(this.sequences.size(), startIndex);
-			
-			Future<?> printerFinished = this.executor.submit(() -> printAvailableLines(startIndex));			
+			this.status = new ProgressBarHelper(this.sequences.size(), startIndex, "Distance calculation");		
 			
 			calculateDistances(startIndex);
 			
-			// Wait until the printer thread finishes
-			printerFinished.get();
+			while(numberOfRunningThreads != 0) {
+				Thread.sleep(500);
+			}
 			
+			this.publisher.close();
 			this.executor.shutdownNow();
 			this.status.stop();
 			LOG.log(Level.INFO, "Finished calculation of rna distances");
 		} catch (Exception e) {
 			LOG.log(Level.WARNING, "Failed to calculate distances");
+			this.publisher.closeExceptionally(e);
 			throw new RuntimeException("An unexpected error occured during distance calculation", e);
 		}
 	}
@@ -106,7 +82,7 @@ public class DistanceCalculationCoordinator {
 		while (currentLine < this.sequences.size()) {
 			if (this.numberOfRunningThreads < maxThreadCount) {
 				// only run if threads are available and sequences are remaining
-				startThreadForNextRecord(currentLine);
+				startThreadForNextSequence(currentLine);
 				currentLine++;
 			} else {
 				// currently no thread is available or all sequences were processed 
@@ -116,65 +92,22 @@ public class DistanceCalculationCoordinator {
 		}
 	}
 
-	private void printAvailableLines(int nextLineToPrint) {
-		int waitingTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
-		
-		try (DistanceCSVPrinter printer = initPrinter(nextLineToPrint != 0)) {
-			while (nextLineToPrint < this.sequences.size()) {
-				nextLineToPrint = checkDataAvailableForPrinting(printer, nextLineToPrint);
-				Thread.sleep(waitingTime);
-			}
-		} catch (Exception e) {
-			LOG.log(Level.WARNING, "Unexpected error while trying to print", e);
-		}
-	}
-	
-	private DistanceCSVPrinter initPrinter(boolean append) throws IOException {
-		String csvFileLocation = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FILE_LOCATION, String.class);
-		DistanceCSVPrinter printer = new DistanceCSVPrinter(csvFileLocation, this.getHeader(), append);
-		
-		if (append) {
-			LOG.log(Level.INFO, "Continuing calculation of rna distances(" + this.distanceCalculator.getDistanceProperties().name() + ")");
-		} else {
-			LOG.log(Level.INFO, "Starting calculation of rna distances (" + this.distanceCalculator.getDistanceProperties().name() + ")");
-		}	
-		
-		return printer;
-	}
-
-	private void startThreadForNextRecord(final int line) {
+	private void startThreadForNextSequence(final int line) {
 		this.executor.execute(() -> createRecord(line));
 		changeNumberOfRunningThreads(true);
 	}
 	
-	private int checkDataAvailableForPrinting(DistanceCSVPrinter printer, int nextLineToPrint) throws IOException, InterruptedException, ExecutionException {
-		// print lines in line order
-		while (this.finishedUnsafedLines.containsKey(nextLineToPrint)) {
-			// the next necessary line is available and will be printed
-			List<Object> lineToPrint = this.finishedUnsafedLines.remove(nextLineToPrint);
-			printer.addRecord(lineToPrint);
-			nextLineToPrint++;
-		}
-		PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.NEXT_RECORD, nextLineToPrint);
-		return nextLineToPrint;
-	}
-
-
 	private void createRecord(int i) {
-		List<Object> record = new ArrayList<>();
 		RNASequence current = this.sequences.get(i);		
-		
-		record.add(current.getDescription());
 		
 		this.sequences.stream()
 			.limit(i)
-			.map(seq -> calculateDistance(current, seq))
-			.forEach(record::add);
+			.map(seq -> new DistanceDAO(current.getDescription(), seq.getDescription(), this.distanceCalculator.getDistanceProperties().name(), this.distanceCalculator.getDistance(current, seq)))
+			.peek(dao -> this.status.next())
+			.filter(dao -> dao.getDistanceValue() != -1)
+			.forEach(Neo4JCypherQueries::addDistance);
 		
-		record.add(0);
 		this.status.next();
-		
-		this.finishedUnsafedLines.put(i, record);
 		this.changeNumberOfRunningThreads(false);
 	}
 	
@@ -185,17 +118,10 @@ public class DistanceCalculationCoordinator {
 			this.numberOfRunningThreads--;
 		}
 	}
-
-	private Object calculateDistance(RNASequence seq1, RNASequence seq2) {
-		this.status.next();
-		return this.distanceCalculator.getDistance(seq1, seq2);
+	
+	@Override
+	public void subscribe(Subscriber<? super DistanceDAO> subscriber) {
+		publisher.subscribe(subscriber);
 	}
 
-	private String[] getHeader() {
-		String[] header = this.sequences.stream()
-			.map(RNASequence::getDescription)
-			.toArray(String[]::new);
-		
-		return ArrayUtils.addFirst(header, "lnc_rna_name");
-	}
 }

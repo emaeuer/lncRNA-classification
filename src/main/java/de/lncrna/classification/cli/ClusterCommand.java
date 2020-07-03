@@ -1,7 +1,5 @@
 package de.lncrna.classification.cli;
 
-import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
@@ -9,7 +7,6 @@ import de.lncrna.classification.clustering.algorithms.space.AbstractClusteringSp
 import de.lncrna.classification.clustering.algorithms.space.ClusterSpaceFactory;
 import de.lncrna.classification.init.distance.DistanceProperties;
 import de.lncrna.classification.util.PropertyKeyHelper;
-import de.lncrna.classification.util.data.DistanceMatrix;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -41,22 +38,18 @@ public class ClusterCommand implements Runnable {
 	public void run() {
 		PropertyKeyHelper.setGlobalPrefix(distanceProp.name());
 		
-		DistanceMatrix matrix = null;
 		double averageClusterDistance = 0;
 		
-		try {
-			matrix = DistanceMatrix.initFromCSV();
-		} catch (IOException e) {
-			LOG.log(Level.WARNING, "Failed to load distance matrix", e);
-			System.exit(0);
-		}
+		AbstractClusteringSpace<?> space = ClusterSpaceFactory.createClusterSpace(algorithm.getImplementationType(), distanceProp);
 		
-		AbstractClusteringSpace<?> space = ClusterSpaceFactory.createClusterSpace(algorithm.getImplementationType(), matrix);
-		
-		
+		int numberOfIterations = 0;
 		while (space.getClusters().size() > maxClusterCount && averageClusterDistance < maxAverageClusterDistance) {
 			space.nextIteration();
-			averageClusterDistance = space.calculateAverageClusterDistance();
+			if (numberOfIterations % 50 == 0) {
+				averageClusterDistance = space.calculateAverageClusterDistance();
+				System.out.println(numberOfIterations + " : " + averageClusterDistance);
+			}
+			numberOfIterations++;
 		}
 		
 	}

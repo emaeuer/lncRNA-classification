@@ -1,4 +1,4 @@
-package de.lncrna.classification.init.importer;
+package de.lncrna.classification.util.fasta;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,13 +26,11 @@ public class FastaImporter {
 	private FastaImporter() {
 	}
 	
-	public static List<RNASequence> requestOrLoadRNASequences() throws IOException {
+	public static List<RNASequence> requestOrLoadRNASequences(File fastaFile) throws IOException {
 		LOG.log(Level.INFO, "Collecting rna data");
-		
-		File fastaFile = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_FILE_LOCATION, File.class);
-		
+				
 		if (!fastaFile.isFile()) {
-			downloadFastaFromURL(PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_DOWNLOAD_URL, String.class));
+			downloadFastaFromURL(PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_DOWNLOAD_URL, String.class), fastaFile);
 		}
 					
 		return readFastaFromFile(fastaFile)
@@ -53,17 +51,16 @@ public class FastaImporter {
 		}
 	}
 
-	private static void downloadFastaFromURL(String url) throws IOException {
+	private static void downloadFastaFromURL(String url, File fastaFile) throws IOException {
 		LOG.log(Level.INFO, "Downloading FASTA-file");
 		try (InputStream input = new URL(url).openStream()) {
-			saveFastaFile(input);
+			saveFastaFile(input, fastaFile);
 		}
 	}
 
-	private static void saveFastaFile(InputStream input) {
+	private static void saveFastaFile(InputStream input, File fastaFile) {
 		LOG.log(Level.INFO, "Saving FASTA-file");
-		try (FileOutputStream output = 
-				new FileOutputStream(PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.FASTA_FILE_LOCATION, String.class))) {
+		try (FileOutputStream output = new FileOutputStream(fastaFile)) {
 			input.transferTo(output);
 		}  catch (IOException e) {
 			LOG.log(Level.WARNING, "An exception occured while saving fasta file", e);

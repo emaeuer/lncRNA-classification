@@ -29,3 +29,6 @@ hs_err_pid*
 *.csv
 *.fasta
 *.MF
+
+#Neo4J
+/data/*

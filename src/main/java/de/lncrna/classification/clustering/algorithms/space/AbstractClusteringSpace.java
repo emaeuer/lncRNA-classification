@@ -7,7 +7,8 @@ import java.util.logging.Logger;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
-import de.lncrna.classification.util.data.DistanceMatrix;
+import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.init.distance.DistanceProperties;
 
 public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
@@ -17,14 +18,14 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	
 	private T algorithm;
 	
-	private final DistanceMatrix matrix;
+	private final DistanceProperties distanceProp;
 	
-	public AbstractClusteringSpace(DistanceMatrix distances) {
-		initSpace(distances);
-		this.matrix = distances;
+	public AbstractClusteringSpace(DistanceProperties distanceProp) {
+		this.distanceProp = distanceProp;
+		initSpace();
 	}
 
-	protected abstract void initSpace(DistanceMatrix distances);
+	protected abstract void initSpace();
 	
 	public abstract void nextIteration();
 
@@ -35,6 +36,10 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	public T getAlgorithm() {
 		return algorithm;
 	}
+	
+	protected DistanceProperties getDistanceProperties() {
+		return this.distanceProp;
+	}
 
 	public void setAlgorithm(T algorithm) {
 		this.algorithm = algorithm;
@@ -42,22 +47,8 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
 	public double calculateAverageClusterDistance() {
 		return this.clusters.parallelStream()
-			.mapToDouble(this::calculateAverageDistanceOfCluster)
+			.mapToDouble(c -> Neo4JCypherQueries.getAverageClusterDistance(c.getSequences(), this.distanceProp.name()))
 			.average()
 			.orElse(-1);
-	}
-	
-	public double calculateAverageDistanceOfCluster(Cluster<T> cluster) {
-		double distanceSum = 0;
-		int cnt = 1;
-		String[] sequences = cluster.getSequences().toArray(new String[cluster.getClusterSize()]);
-		for (int i = 0; i < cluster.getClusterSize(); i++) {
-			for (int j = i + 1; j < cluster.getClusterSize(); j++) {
-				distanceSum += this.matrix.getDistance(sequences[i], sequences[j]).getValue();
-				cnt++;
-			}
-		}
-		return distanceSum / cnt;
-	}
-	
+	}	
 }

@@ -1,34 +1,30 @@
 package de.lncrna.classification.clustering.algorithms.space;
 
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.logging.Level;
-
-import com.google.common.collect.Table.Cell;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
-import de.lncrna.classification.util.data.DistanceMatrix;
+import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.util.data.DistanceDAO;
 
 public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClusteringMinimalDistance> {
-
-	private static final Comparator<Cell<String, String, Float>> CELL_COMPARATOR = 
-			(Cell<String, String, Float> c1, Cell<String, String, Float> c2) -> Float.compare(c1.getValue(), c2.getValue());
 	
-	private PriorityQueue<Cell<String, String, Float>> orderedDistances;
+	private LinkedList<DistanceDAO> orderedDistances;
 	
-	public MinimalDistanceHierachicalClusteringSpace(DistanceMatrix distances) {
-		super(distances);
+	public MinimalDistanceHierachicalClusteringSpace(DistanceProperties distanceProp) {
+		super(distanceProp);
 	}
 
 	@Override
-	protected void initSpace(DistanceMatrix distances) {
+	protected void initSpace() {
 		LOG.log(Level.INFO, "Starting hierarchical clustering with minimal distance");
 		LOG.log(Level.INFO, "Initializing clusters");
 		
-		List<String> sequenceNames = distances.getSequenceNames();
+		List<String> sequenceNames = Neo4JCypherQueries.getAllSequenceNames();
 		
 		sequenceNames.parallelStream()
 			.map(sequence -> new Cluster<>(new HierarchicalClusteringMinimalDistance(), Arrays.asList(sequence)))
@@ -36,8 +32,7 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 		
 		LOG.log(Level.INFO, "Pairwise comparison of all points");
 		// Data is automatically sorted in PriorityQueue
-		this.orderedDistances = new PriorityQueue<>(CELL_COMPARATOR);
-		this.orderedDistances.addAll(distances.getAllCells());
+		this.orderedDistances = Neo4JCypherQueries.getDistancesOrdered(getDistanceProperties().name(), 10000);
 	}
 
 	@Override
@@ -46,13 +41,12 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 			return;
 		}
 		
-		Cell<String, String, Float> current = this.orderedDistances.poll();
+		DistanceDAO current = this.orderedDistances.poll();
 		
-		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getRowKey());
-		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getColumnKey());
+		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getSeq1());
+		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getSeq2());
 		
 		if (c1 != c2) {
-			System.out.println(c1 + " " + c2);
 			getClusters().remove(c2);
 			c1.mergeWithOther(c2);
 		} else {

@@ -29,9 +29,9 @@
 			<version>1.8</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.lucene</groupId>
-		    <artifactId>lucene-suggest</artifactId>
-		    <version>8.5.2</version>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-suggest</artifactId>
+			<version>8.5.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -49,9 +49,24 @@
 			<version>29.0-jre</version>
 		</dependency>
 		<dependency>
-		  <groupId>info.picocli</groupId>
-		  <artifactId>picocli</artifactId>
-		  <version>4.3.2</version>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli</artifactId>
+			<version>4.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20200518</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j</artifactId>
+			<version>4.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-bolt</artifactId>
+			<version>4.1.0</version>
 		</dependency>
 	</dependencies>
 </project>
