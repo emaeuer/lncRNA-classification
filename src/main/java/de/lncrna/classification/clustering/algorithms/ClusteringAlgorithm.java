@@ -13,8 +13,6 @@ import de.lncrna.classification.clustering.Cluster;
  */
 public interface ClusteringAlgorithm {
 	
-	public double distanceTo(Cluster<?> cluster);
-	
 	public void initCluster(List<String> sequences);
 	
 	public void mergeWithOther(Cluster<?> cluster);

@@ -2,7 +2,7 @@ package de.lncrna.classification.cli;
 
 import picocli.CommandLine.Command;
 
-@Command(subcommands = {ClusterCommand.class, InitCommand.class, FilterCommand.class})
+@Command(subcommands = {ClusterCommand.class, InitCommand.class, FilterCommand.class, DataBaseCommand.class})
 public class StartCommand implements Runnable {
 
 	@Override

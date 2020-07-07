@@ -1,5 +1,6 @@
 package de.lncrna.classification.cli;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
@@ -15,7 +16,7 @@ import picocli.CommandLine.Option;
 	synopsisHeading = "%n",
 	descriptionHeading = "%n@|bold,underline Description|@:%n%n",
 	optionListHeading = "%n@|bold,underline Options|@:%n",
-	header = "CLuster lnc rna sequences",
+	header = "Cluster lnc rna sequences",
 	description = "Clusters all sequences contained in the distance matrix",
 	separator = " ")
 public class ClusterCommand implements Runnable {
@@ -44,14 +45,19 @@ public class ClusterCommand implements Runnable {
 		
 		int numberOfIterations = 0;
 		while (space.getClusters().size() > maxClusterCount && averageClusterDistance < maxAverageClusterDistance) {
-			space.nextIteration();
-			if (numberOfIterations % 50 == 0) {
+			if (!space.nextIteration()) {
+				LOG.log(Level.INFO, "Clustering completed");
+				break;
+			}
+				
+			if (numberOfIterations % 10 == 0) {
 				averageClusterDistance = space.calculateAverageClusterDistance();
 				System.out.println(numberOfIterations + " : " + averageClusterDistance);
 			}
 			numberOfIterations++;
 		}
 		
+		System.out.println(space.getClusters().size());
 	}
 
 }

@@ -7,17 +7,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.neo4j.driver.Value;
+import org.neo4j.driver.Values;
+
 import de.lncrna.classification.util.data.DistanceDAO;
 
-public class Neo4JCypherQueries {
+public class Neo4JCypherQueriesServer {
 
-	@SuppressWarnings("unchecked")
 	public static List<String> getAllSequenceNames() {
-		return Neo4JHelper.CONNECTION.executeQuery("MATCH (seq:Sequence) RETURN collect(seq.seqName) AS names", r -> (List<String>) r.next().get("names"));
+		return Neo4JHelperServer.CONNECTION.executeQuery(
+				"MATCH (seq:Sequence) RETURN collect(seq.seqName) AS names", 
+				r -> (List<String>) r.next().get("names").asList(Value::asString));
 	}
 	
 	public static void addDistance(DistanceDAO dao) {
-		Neo4JHelper.CONNECTION.commitQuery(
+		Neo4JHelperServer.CONNECTION.commitQuery(
 				String.format(
 						"MERGE(seq1:Sequence {seqName:\"%s\"}) " + 
 						"MERGE(seq2:Sequence {seqName:\"%s\"}) " + 
@@ -27,14 +31,14 @@ public class Neo4JCypherQueries {
 	}
 	
 	public static DistanceDAO getDistances(DistanceDAO dao) {
-		return Neo4JHelper.CONNECTION.executeQuery(
+		return Neo4JHelperServer.CONNECTION.executeQuery(
 				String.format(
 						"MATCH (:Sequence {seqName:\"%s\"}) - [rel:distance] - (:Sequence {seqName:\"%s\"})" + 
 						"RETURN rel.%s AS distance",
 						dao.getSeq1(), dao.getSeq2(), dao.getDistanceName()), 
 				r -> {
 					if (r.hasNext()) {
-						dao.setDistanceValue(Double.valueOf((double) r.next().getOrDefault("distance", -1)).floatValue());
+						dao.setDistanceValue(Double.valueOf((double) r.next().get("distance", -1)).floatValue());
 					} else {
 						dao.setDistanceValue(-1f);;
 					}
@@ -43,21 +47,21 @@ public class Neo4JCypherQueries {
 	}
 	
 	public static double calculateAverageDistanceOfSequence(String sequence, String distanceName) {
-		return Neo4JHelper.CONNECTION.executeQuery(
+		return Neo4JHelperServer.CONNECTION.executeQuery(
 				String.format(
 						"MATCH (:Sequence {name:\"%s\"}) -[r:distance]- ()" + 
 						"RETURN avg(r.%s) AS avgDistance",
 						sequence, distanceName), 
 				r -> {
 					if (r.hasNext()) {
-						return Double.valueOf((double) r.next().getOrDefault("avgDistance", -1));
+						return Double.valueOf((double) r.next().get("avgDistance", -1));
 					} 
 					return -1.0;
 				});
 	}
 	
 	public static LinkedList<DistanceDAO> getDistancesOrdered(String distanceName, int limit) {
-		return Neo4JHelper.CONNECTION.executeQuery(
+		return Neo4JHelperServer.CONNECTION.executeQuery(
 				String.format(
 						"MATCH (seq1:Sequence) -[r:distance]- (seq2:Sequence) " + 
 						"RETURN seq1.seqName AS seq1, r.%s AS distance, seq2.seqName AS seq2 " + 
@@ -66,13 +70,13 @@ public class Neo4JCypherQueries {
 						distanceName, limit), 
 				r -> {
 					return r.stream()
-						.map(m -> new DistanceDAO((String) m.get("seq1"), (String) m.get("seq2"), distanceName, Double.valueOf((double) m.get("distance")).floatValue())) 
+						.map(m -> new DistanceDAO(m.get("seq1").asString(), m.get("seq2").asString(), distanceName, m.get("distance").asFloat())) 
 						.collect(Collectors.toCollection(LinkedList::new));
 				});
 	}
 	
 	public static String findClustroid(Collection<String> sequences, String distanceName) {
-		return Neo4JHelper.CONNECTION.executeQuery(
+		return Neo4JHelperServer.CONNECTION.executeQuery(
 				String.format(
 						"MATCH (seq:Sequence)" +
 						"WHERE seq.seqName IN %s " +
@@ -86,8 +90,7 @@ public class Neo4JCypherQueries {
 						distanceName), 
 				r -> {
 					return r.stream()
-							.map(m -> m.get("seqName"))
-							.map(s -> (String) s)
+							.map(m -> m.get("seqName").asString())
 							.findFirst()
 							.orElse(null);
 				});
@@ -97,7 +100,7 @@ public class Neo4JCypherQueries {
 		if (sequences.size() == 1) {
 			return 0.0;
 		} else {
-			return Neo4JHelper.CONNECTION.executeQuery(
+			return Neo4JHelperServer.CONNECTION.executeQuery(
 					String.format(
 							"MATCH (seq:Sequence) " +
 							"WHERE seq.seqName IN %s " +
@@ -108,7 +111,7 @@ public class Neo4JCypherQueries {
 							toCollectionString(sequences), distanceName), 
 					r -> {
 						return r.stream()
-							.mapToDouble(m -> (double) m.get("avgClusterDistance"))
+							.mapToDouble(m -> m.get("avgClusterDistance").asDouble())
 							.findFirst()
 							.orElse(1.0);
 					});
@@ -116,7 +119,7 @@ public class Neo4JCypherQueries {
 	}
 	
 	public static Map<Boolean, List<String>> getSequencesWithinTresholds(String center, float tightTreshold, float looseTreshold, String distanceName) {
-		return Neo4JHelper.CONNECTION.executeQuery(
+		return Neo4JHelperServer.CONNECTION.executeQuery(
 				String.format(
 						"MATCH (:Sequence{seqName:\"%1$s\"})-[r:distance]-(seq:Sequence) " +
 						"WHERE r.%4$s < %2$s " +
@@ -129,8 +132,7 @@ public class Neo4JCypherQueries {
 				r -> {
 					Map<Boolean, List<String>> result = new HashMap<>();
 					if (r.hasNext()) {
-						@SuppressWarnings("unchecked") // Generics can't be casted without warning
-						Map<String, List<String>> queryResult = (Map<String, List<String>>) r.next().get("result");
+						Map<String, List<String>> queryResult = (Map<String, List<String>>) r.next().get("result").asMap(Values.ofList(o -> o.asString()));
 						result.put(true, queryResult.get("tightSequences"));
 						result.put(false, queryResult.get("looseSequences"));
 					}

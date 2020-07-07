@@ -1,21 +1,21 @@
 package de.lncrna.classification.clustering.algorithms.space;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
 import de.lncrna.classification.clustering.Cluster;
-import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClusteringMinimalDistance;
+import de.lncrna.classification.clustering.algorithms.implementations.HierarchicalClustering;
 import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.db.Neo4JCypherQueriesServer;
 import de.lncrna.classification.init.distance.DistanceProperties;
 import de.lncrna.classification.util.data.DistanceDAO;
 
-public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClusteringMinimalDistance> {
+public class HierachicalClusteringSpace extends AbstractClusteringSpace<HierarchicalClustering> {
 	
 	private LinkedList<DistanceDAO> orderedDistances;
 	
-	public MinimalDistanceHierachicalClusteringSpace(DistanceProperties distanceProp) {
+	public HierachicalClusteringSpace(DistanceProperties distanceProp) {
 		super(distanceProp);
 	}
 
@@ -24,10 +24,10 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 		LOG.log(Level.INFO, "Starting hierarchical clustering with minimal distance");
 		LOG.log(Level.INFO, "Initializing clusters");
 		
-		List<String> sequenceNames = Neo4JCypherQueries.getAllSequenceNames();
+		List<String> sequenceNames = Neo4JCypherQueriesServer.getAllSequenceNames();
 		
 		sequenceNames.parallelStream()
-			.map(sequence -> new Cluster<>(new HierarchicalClusteringMinimalDistance(), Arrays.asList(sequence)))
+			.map(sequence -> new Cluster<>(new HierarchicalClustering(), sequence))
 			.forEach(cluster -> getClusters().add(cluster));		
 		
 		LOG.log(Level.INFO, "Pairwise comparison of all points");
@@ -36,15 +36,15 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 	}
 
 	@Override
-	public void nextIteration() {
+	public boolean nextIteration() {
 		if (getClusters().size() == 1) {
-			return;
+			return false;
 		}
 		
 		DistanceDAO current = this.orderedDistances.poll();
 		
-		Cluster<HierarchicalClusteringMinimalDistance> c1 = findContainingCluster(current.getSeq1());
-		Cluster<HierarchicalClusteringMinimalDistance> c2 = findContainingCluster(current.getSeq2());
+		Cluster<HierarchicalClustering> c1 = findContainingCluster(current.getSeq1());
+		Cluster<HierarchicalClustering> c2 = findContainingCluster(current.getSeq2());
 		
 		if (c1 != c2) {
 			getClusters().remove(c2);
@@ -53,9 +53,10 @@ public class MinimalDistanceHierachicalClusteringSpace extends AbstractClusterin
 			// nextIteration() until two clusters are merged or singularity is reached
 			nextIteration();
 		}		
+		return true;
 	}
 	
-	private Cluster<HierarchicalClusteringMinimalDistance> findContainingCluster(String sequence) {
+	private Cluster<HierarchicalClustering> findContainingCluster(String sequence) {
 		return getClusters().parallelStream()
 			.filter(c -> c.containsSequence(sequence))
 			.findFirst()

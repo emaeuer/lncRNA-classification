@@ -1,5 +1,6 @@
 package de.lncrna.classification.clustering;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,11 +23,15 @@ public class Cluster<T extends ClusteringAlgorithm> {
 		this.algorithm.initCluster(sequences);
 	}
 	
+	public Cluster(final T algorithm, String sequence) {
+		this(algorithm, Arrays.asList(sequence));
+	}
+	
 	public void mergeWithOther(Cluster<T> other) {
 		this.algorithm.mergeWithOther(other);
 	}
 	
-	public void addLncRNA(String data) {
+	public void addSequence(String data) {
 		this.algorithm.addSequence(data);
 	}
 
@@ -36,10 +41,6 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	
 	public boolean containsSequence(String sequence) {
 		return this.algorithm.getSequences().contains(sequence);
-	}
-	
-	public double distanceTo(Cluster<T> other) {
-		return this.algorithm.distanceTo(other);
 	}
 	
 	public T getAlgorithm() {
@@ -52,16 +53,6 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	
 	public void clear() {
 		this.getAlgorithm().getSequences().clear();
-	}
-	
-	public double calcualteAverageClusterDistance() {
-		long distanceSum = 0;
-		for (int i = 0; i < getClusterSize(); i++) {
-			for (int j = i + 1; j < getClusterSize(); j++) {
-				
-			}		
-		}
-		return distanceSum / getClusterSize();
 	}
 	
 	@Override

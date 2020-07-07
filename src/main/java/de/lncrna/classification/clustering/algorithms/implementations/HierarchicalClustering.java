@@ -1,40 +1,34 @@
 package de.lncrna.classification.clustering.algorithms.implementations;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 
 /**
  * Concrete Implementation of the strategy pattern. Implements an hierarchical clustering 
- * algorithm that takes the maximal distance between two points from different clusters as 
+ * algorithm that takes the minimal distance between two points from different clusters as 
  * the distance between them
  * 
  * @author emaeu
  *
  */
-public class HierarchicalClusteringMaximalDistance implements ClusteringAlgorithm {
+public class HierarchicalClustering implements ClusteringAlgorithm {
 
-	private final List<String> sequences = new ArrayList<>();
-	
-	@Override
-	public double distanceTo(Cluster<?> cluster) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+	private final Set<String> sequences = new HashSet<>();
 
 	@Override
-	public void mergeWithOther(Cluster<?> cluster) {
-		// TODO Auto-generated method stub
-		
+	public void mergeWithOther(Cluster<?> other) {
+		this.sequences.addAll(other.getAlgorithm().getSequences());
+		other.clear();
 	}
 
 	@Override
 	public void addSequence(String data) {
-		// TODO Auto-generated method stub
-		
+		this.sequences.add(data);		
 	}
 
 	@Override
@@ -44,8 +38,7 @@ public class HierarchicalClusteringMaximalDistance implements ClusteringAlgorith
 
 	@Override
 	public void initCluster(List<String> sequences) {
-		// TODO Auto-generated method stub
-		
+		this.sequences.addAll(sequences);		
 	}
 	
 }

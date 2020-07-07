@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import org.biojava.nbio.core.sequence.RNASequence;
 
 import de.lncrna.classification.cli.ProgressBarHelper;
-import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.db.Neo4JCypherQueriesServer;
 import de.lncrna.classification.init.distance.calculation.DistanceCalculator;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
@@ -105,7 +105,7 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 			.map(seq -> new DistanceDAO(current.getDescription(), seq.getDescription(), this.distanceCalculator.getDistanceProperties().name(), this.distanceCalculator.getDistance(current, seq)))
 			.peek(dao -> this.status.next())
 			.filter(dao -> dao.getDistanceValue() != -1)
-			.forEach(Neo4JCypherQueries::addDistance);
+			.forEach(Neo4JCypherQueriesServer::addDistance);
 		
 		this.status.next();
 		this.changeNumberOfRunningThreads(false);

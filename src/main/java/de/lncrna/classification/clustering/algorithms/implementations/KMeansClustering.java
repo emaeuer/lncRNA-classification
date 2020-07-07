@@ -15,12 +15,6 @@ import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 public class KMeansClustering implements ClusteringAlgorithm {
 
 	@Override
-	public double distanceTo(Cluster<?> cluster) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public void mergeWithOther(Cluster<?> cluster) {
 		// TODO Auto-generated method stub
 		

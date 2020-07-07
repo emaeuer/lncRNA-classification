@@ -5,7 +5,7 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.db.Neo4JCypherQueriesServer;
 import de.lncrna.classification.util.data.DistanceDAO;
 
 public class DistancePersister implements Subscriber<DistanceDAO> {
@@ -23,7 +23,7 @@ public class DistancePersister implements Subscriber<DistanceDAO> {
 
 	@Override
 	public void onNext(DistanceDAO dao) {
-		Neo4JCypherQueries.addDistance(dao);
+		Neo4JCypherQueriesServer.addDistance(dao);
 		this.subscription.request(1);
 	}
 

@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
-import de.lncrna.classification.db.Neo4JCypherQueries;
+import de.lncrna.classification.db.Neo4JCypherQueriesServer;
 import de.lncrna.classification.init.distance.DistanceProperties;
 
 public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
@@ -27,10 +27,14 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
 	protected abstract void initSpace();
 	
-	public abstract void nextIteration();
+	public abstract boolean nextIteration();
 
 	public List<Cluster<T>> getClusters() {
 		return clusters;
+	}
+	
+	public void addCluster(Cluster<T> cluster) {
+		this.clusters.add(cluster);
 	}
 
 	public T getAlgorithm() {
@@ -47,7 +51,7 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
 	public double calculateAverageClusterDistance() {
 		return this.clusters.parallelStream()
-			.mapToDouble(c -> Neo4JCypherQueries.getAverageClusterDistance(c.getSequences(), this.distanceProp.name()))
+			.mapToDouble(c -> Neo4JCypherQueriesServer.getAverageClusterDistance(c.getSequences(), this.distanceProp.name()))
 			.average()
 			.orElse(-1);
 	}	
