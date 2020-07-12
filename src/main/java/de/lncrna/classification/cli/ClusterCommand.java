@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
 import de.lncrna.classification.clustering.algorithms.space.AbstractClusteringSpace;
 import de.lncrna.classification.clustering.algorithms.space.ClusterSpaceFactory;
+import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.init.distance.DistanceProperties;
 import de.lncrna.classification.util.PropertyKeyHelper;
 import picocli.CommandLine.Command;
@@ -35,8 +36,13 @@ public class ClusterCommand implements Runnable {
 	@Option(names = {"-c", "--maxAverageClusterDistance"}, defaultValue = "1", description = "Clustering stops when maximal average cluster distance is reached") 
 	private double maxAverageClusterDistance;
 	
+	@Option(names = {"-e", "--embedded"}, defaultValue = "false", description = "Use an embedded neo4j instance") 
+	private boolean embeddedMode;
+	
 	@Override
 	public void run() {
+		Neo4jDatabaseSingleton.initInstance(embeddedMode);
+		
 		PropertyKeyHelper.setGlobalPrefix(distanceProp.name());
 		
 		double averageClusterDistance = 0;
@@ -50,12 +56,14 @@ public class ClusterCommand implements Runnable {
 				break;
 			}
 				
-			if (numberOfIterations % 10 == 0) {
+			if (numberOfIterations % 200 == 0) {
 				averageClusterDistance = space.calculateAverageClusterDistance();
 				System.out.println(numberOfIterations + " : " + averageClusterDistance);
 			}
 			numberOfIterations++;
 		}
+		
+		space.persistClusterInformation();
 		
 		System.out.println(space.getClusters().size());
 	}

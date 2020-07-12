@@ -8,10 +8,18 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
+import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
+import de.lncrna.classification.init.distance.DistanceProperties;
 
 public class CanopyClustering implements ClusteringAlgorithm  {
 
 	private final List<String> sequences = new ArrayList<>();
+	
+	private final DistanceProperties distanceProperty;
+
+	public CanopyClustering(DistanceProperties distanceProperty) {
+		this.distanceProperty = distanceProperty;
+	}
 
 	@Override
 	public void initCluster(List<String> sequences) {
@@ -31,6 +39,16 @@ public class CanopyClustering implements ClusteringAlgorithm  {
 	@Override
 	public Collection<String> getSequences() {
 		return this.sequences;
+	}
+
+	@Override
+	public DistanceProperties getDistanceAlgortithm() {
+		return this.distanceProperty;
+	}
+
+	@Override
+	public String getName() {
+		return ImplementedClusteringAlgorithms.Canopy.name();
 	}
 
 }

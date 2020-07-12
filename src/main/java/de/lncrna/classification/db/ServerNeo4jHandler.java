@@ -9,14 +9,15 @@ import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Transaction;
 
-public class Neo4JHelperServer implements AutoCloseable {
-	
-	public static final Neo4JHelperServer CONNECTION = new Neo4JHelperServer();
+public class ServerNeo4jHandler implements Neo4jHandler<Result> {
 	
 	private final Driver driver;
 	
-	private Neo4JHelperServer() {
-		driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "rna"));
+	public ServerNeo4jHandler() {
+		driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "test"));
+		
+		// Register a shutdown hook 
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> close())); 
 	}
 	
 	public void commitQuery(String query) {

@@ -9,7 +9,7 @@ import java.util.logging.Level;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.implementations.CanopyClustering;
-import de.lncrna.classification.db.Neo4JCypherQueriesServer;
+import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.init.distance.DistanceProperties;
 
 public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyClustering> {
@@ -30,7 +30,7 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		LOG.log(Level.INFO, "Starting canopy clustering ");
 		LOG.log(Level.INFO, "Initializing clusters");
 		
-		this.candidates = Neo4JCypherQueriesServer.getAllSequenceNames();
+		this.candidates = new ArrayList<>(Neo4jDatabaseSingleton.getQueryHelper().getAllSequenceNames());
 	}
 
 	@Override
@@ -46,13 +46,13 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		sequencesOfCluster.add(center);
 		
 		Map<Boolean, List<String>> sequencesToAdd = 
-				Neo4JCypherQueriesServer.getSequencesWithinTresholds(center, this.tightTreshold, this.looseTreshold, getDistanceProperties().name());
+				Neo4jDatabaseSingleton.getQueryHelper().getSequencesWithinTresholds(center, this.tightTreshold, this.looseTreshold, getDistanceProperties().name());
 		sequencesOfCluster.addAll(sequencesToAdd.getOrDefault(true, Collections.emptyList()));
 		sequencesOfCluster.addAll(sequencesToAdd.getOrDefault(false, Collections.emptyList()));
 		
 		candidates.removeAll(sequencesToAdd.getOrDefault(true, Collections.emptyList()));
 		
-		addCluster(new Cluster<>(new CanopyClustering(), sequencesOfCluster));
+		addCluster(new Cluster<>(new CanopyClustering(getDistanceProperties()), sequencesOfCluster));
 		return true;
 	}
 

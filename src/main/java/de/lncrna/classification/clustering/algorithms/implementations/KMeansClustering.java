@@ -5,6 +5,8 @@ import java.util.List;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
+import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
+import de.lncrna.classification.init.distance.DistanceProperties;
 
 /**
  * Concrete Implementation of the strategy pattern. Implements the k-means algorithm
@@ -14,6 +16,12 @@ import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
  */
 public class KMeansClustering implements ClusteringAlgorithm {
 
+	private final DistanceProperties distanceProperty;
+
+	public KMeansClustering(DistanceProperties distanceProperty) {
+		this.distanceProperty = distanceProperty;
+	}
+	
 	@Override
 	public void mergeWithOther(Cluster<?> cluster) {
 		// TODO Auto-generated method stub
@@ -36,6 +44,16 @@ public class KMeansClustering implements ClusteringAlgorithm {
 	public void initCluster(List<String> sequences) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public DistanceProperties getDistanceAlgortithm() {
+		return this.distanceProperty;
+	}
+	
+	@Override
+	public String getName() {
+		return ImplementedClusteringAlgorithms.K_Means.name();
 	}
 
 }

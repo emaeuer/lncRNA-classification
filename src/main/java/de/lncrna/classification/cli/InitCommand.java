@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.biojava.nbio.core.sequence.RNASequence;
 
+import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.init.distance.DistanceCalculationCoordinator;
 import de.lncrna.classification.init.distance.DistanceProperties;
 import de.lncrna.classification.util.PropertyHandler;
@@ -25,6 +26,9 @@ public class InitCommand implements Runnable {
 	
 	@Option(names = {"-r", "--restart"}, defaultValue = "false", description = "The existing distance matrix will be either overwritten or new distances will be appended") 
 	private boolean restartCalculation;
+	
+	@Option(names = {"-e", "--embedded"}, defaultValue = "false", description = "Use an embedded neo4j instance") 
+	private boolean embeddedMode;
 	
 	@Option(names = {"-d", "--distanceAlgorithm"}, required = true, description = "Choose a distance measure. Possible values: ${COMPLETION-CANDIDATES}") 
 	private DistanceProperties distanceProp;
@@ -54,6 +58,8 @@ public class InitCommand implements Runnable {
 		if (restartCalculation || hasChanged) {
 			PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.NEXT_RECORD, 0);
 		}
+		
+		Neo4jDatabaseSingleton.initInstance(embeddedMode);
 		
 		DistanceCalculationCoordinator coordinator = new DistanceCalculationCoordinator(sequences, distanceProp.getCalculator());
 //		coordinator.subscribe(new DistancePersister());

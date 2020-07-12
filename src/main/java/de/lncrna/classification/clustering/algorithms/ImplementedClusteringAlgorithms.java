@@ -6,9 +6,9 @@ import de.lncrna.classification.clustering.algorithms.implementations.KMeansClus
 
 public enum ImplementedClusteringAlgorithms {
 
-	HIERARCHICAL_CLUSTERING(HierarchicalClustering.class),
-	K_MEANS(KMeansClustering.class),
-	CANOPY(CanopyClustering.class);
+	Hierarchical(HierarchicalClustering.class),
+	K_Means(KMeansClustering.class),
+	Canopy(CanopyClustering.class);
 	
 	private final Class<? extends ClusteringAlgorithm> algorithmType;
 

@@ -14,7 +14,7 @@ public class ClusterSpaceFactory {
 		} else if (KMeansClustering.class == clusterType) {
 			return null;
 		} else if (CanopyClustering.class == clusterType) {
-			return new CanopyClusteringSpace(distanceProp, 0.2f, 0.15f);
+			return new CanopyClusteringSpace(distanceProp, 0.3f, 0.25f);
 		}
 		return null;
 	}

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import de.lncrna.classification.clustering.Cluster;
+import de.lncrna.classification.init.distance.DistanceProperties;
 
 /**
  * Strategy of the strategy pattern
@@ -20,5 +21,9 @@ public interface ClusteringAlgorithm {
 	public void addSequence(String data);
 	
 	public Collection<String> getSequences(); 
+	
+	public DistanceProperties getDistanceAlgortithm();
+	
+	public String getName();
 	
 }

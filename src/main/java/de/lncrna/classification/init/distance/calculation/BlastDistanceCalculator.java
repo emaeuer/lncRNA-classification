@@ -26,7 +26,7 @@ public class BlastDistanceCalculator implements DistanceCalculator {
 	// --> lazy initializing to prevent a slow start up
 	private boolean isInitialized = false;
 	
-	private void readBlastFile() {
+	public void readBlastFile() {
 		File blastFile = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.BLAST_RESULT_FILE_LOCATION, File.class);
 		
 		try (CSVParser reader = new CSVParser(new FileReader(blastFile), CSVFormat.DEFAULT)) {
@@ -55,10 +55,16 @@ public class BlastDistanceCalculator implements DistanceCalculator {
 			
 				this.distanceMatrix.put(seq1, seq2, distance);
 			}
+			
+			System.out.println(String.format("BitScore: [%f, %f]", minBitScoreDistance, maxBitScoreDistance));
+			System.out.println(String.format("Score: [%f, %f]", minScoreDistance, maxScoreDistance));
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		isInitialized = true;
 		
 	}
 
@@ -66,7 +72,6 @@ public class BlastDistanceCalculator implements DistanceCalculator {
 	public float getDistance(RNASequence seq1, RNASequence seq2) {
 		if (!isInitialized) {
 			readBlastFile();
-			isInitialized = true;
 		}
 		
 		Float distance = this.distanceMatrix.get(seq1.getDescription(), seq2.getDescription());

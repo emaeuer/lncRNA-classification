@@ -16,17 +16,15 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 
-public class Neo4JHelper implements AutoCloseable {
-	
-	public static final Neo4JHelper CONNECTION = new Neo4JHelper();
+public class EmbeddedNeo4jHandler implements Neo4jHandler<Result> {
 	
 	private final DatabaseManagementService managementService;
 	private final GraphDatabaseService graphDB;
 	
-	private Neo4JHelper() {
+	public EmbeddedNeo4jHandler() {
 		this.managementService = initManagementService();
 		this.graphDB = this.managementService.database(PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.NEO4J_DATABASE_NAME, String.class));
-		
+				
 		initSchemeIfNecessary();
 	}
 
@@ -71,6 +69,7 @@ public class Neo4JHelper implements AutoCloseable {
 		return false;
 	}
 	
+	@Override
 	public void commitQuery(String query) {
 		try (Transaction tx = graphDB.beginTx()) {			
 			tx.execute(query);
@@ -78,6 +77,7 @@ public class Neo4JHelper implements AutoCloseable {
 		}
 	}
 	
+	@Override
 	public <R> R executeQuery(String query, Function<Result, R> mapper) {
 		try (Transaction tx = graphDB.beginTx()) {			
 			return mapper.apply(tx.execute(query));

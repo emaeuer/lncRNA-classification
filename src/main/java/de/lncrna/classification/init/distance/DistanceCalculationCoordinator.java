@@ -5,22 +5,20 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Flow.Publisher;
-import java.util.concurrent.Flow.Subscriber;
-import java.util.concurrent.SubmissionPublisher;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.biojava.nbio.core.sequence.RNASequence;
 
 import de.lncrna.classification.cli.ProgressBarHelper;
-import de.lncrna.classification.db.Neo4JCypherQueriesServer;
+import de.lncrna.classification.db.Neo4jDatabaseSingleton;
+import de.lncrna.classification.init.distance.calculation.BlastDistanceCalculator;
 import de.lncrna.classification.init.distance.calculation.DistanceCalculator;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 import de.lncrna.classification.util.data.DistanceDAO;
 
-public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
+public class DistanceCalculationCoordinator {
 	
 	private static final Logger LOG = Logger.getLogger("logger");
 	
@@ -30,12 +28,11 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 	
 	private final ExecutorService executor;
 	
-	private volatile int numberOfRunningThreads = 0;
+	private int numberOfRunningThreads = 0;
 	
-	private final DistanceCalculator distanceCalculator;
-
-	private final SubmissionPublisher<DistanceDAO> publisher = new SubmissionPublisher<>();
+	private int numberOfFinishedSequences = 0;
 	
+	private final DistanceCalculator distanceCalculator;	
 	
 	public DistanceCalculationCoordinator(List<RNASequence> sequences, DistanceCalculator distanceCalculator) {
 		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
@@ -47,6 +44,7 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 	
 	public void startDistanceCalculation() {
 		int startIndex = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.NEXT_RECORD, Integer.class);
+		this.numberOfFinishedSequences = startIndex;
 		
 		if (startIndex != 0) {
 			LOG.log(Level.INFO, "Continuing calculation of rna distances(" + this.distanceCalculator.getDistanceProperties().name() + ")");
@@ -57,19 +55,23 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 		try {			
 			this.status = new ProgressBarHelper(this.sequences.size(), startIndex, "Distance calculation");		
 			
+			Neo4jDatabaseSingleton.getQueryHelper().insertAllSequences(this.sequences);
+			
+			if (this.distanceCalculator instanceof BlastDistanceCalculator) {
+				((BlastDistanceCalculator) this.distanceCalculator).readBlastFile();
+			}
+			
 			calculateDistances(startIndex);
 			
 			while(numberOfRunningThreads != 0) {
 				Thread.sleep(500);
 			}
 			
-			this.publisher.close();
 			this.executor.shutdownNow();
 			this.status.stop();
 			LOG.log(Level.INFO, "Finished calculation of rna distances");
 		} catch (Exception e) {
 			LOG.log(Level.WARNING, "Failed to calculate distances");
-			this.publisher.closeExceptionally(e);
 			throw new RuntimeException("An unexpected error occured during distance calculation", e);
 		}
 	}
@@ -93,11 +95,11 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 	}
 
 	private void startThreadForNextSequence(final int line) {
-		this.executor.execute(() -> createRecord(line));
+		this.executor.execute(() -> calculateAllDistancesForSequence(line));
 		changeNumberOfRunningThreads(true);
 	}
 	
-	private void createRecord(int i) {
+	private void calculateAllDistancesForSequence(int i) {
 		RNASequence current = this.sequences.get(i);		
 		
 		this.sequences.stream()
@@ -105,12 +107,13 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 			.map(seq -> new DistanceDAO(current.getDescription(), seq.getDescription(), this.distanceCalculator.getDistanceProperties().name(), this.distanceCalculator.getDistance(current, seq)))
 			.peek(dao -> this.status.next())
 			.filter(dao -> dao.getDistanceValue() != -1)
-			.forEach(Neo4JCypherQueriesServer::addDistance);
+			.forEach(Neo4jDatabaseSingleton.getQueryHelper()::addDistance);
 		
 		this.status.next();
-		this.changeNumberOfRunningThreads(false);
+		changeNumberOfRunningThreads(false);
+		finishSequence(i);
 	}
-	
+
 	private synchronized void changeNumberOfRunningThreads(boolean increment) {
 		if (increment) {
 			this.numberOfRunningThreads++;
@@ -119,9 +122,11 @@ public class DistanceCalculationCoordinator implements Publisher<DistanceDAO> {
 		}
 	}
 	
-	@Override
-	public void subscribe(Subscriber<? super DistanceDAO> subscriber) {
-		publisher.subscribe(subscriber);
+	private synchronized void finishSequence(int i) {
+		if (i > this.numberOfFinishedSequences) {
+			this.numberOfFinishedSequences = i;
+			PropertyHandler.HANDLER.setPropertieValue(PropertyKeys.NEXT_RECORD, this.numberOfFinishedSequences);
+		}
 	}
 
 }

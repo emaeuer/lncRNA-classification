@@ -2,7 +2,7 @@ package de.lncrna.classification.cli;
 
 import java.util.Scanner;
 
-import de.lncrna.classification.db.Neo4JHelperServer;
+import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import picocli.CommandLine.Command;
 
 @Command(name = "database",
@@ -17,13 +17,14 @@ public class DataBaseCommand implements Runnable {
 	
 	@Override
 	public void run() {
-		Neo4JHelperServer helper = Neo4JHelperServer.CONNECTION;
+		Neo4jDatabaseSingleton.initInstance(true);
 		System.out.println("Enter 'stop' to terminate the database");
 		Scanner scan = new Scanner(System.in);
 		while (!"stop".equalsIgnoreCase(scan.next())) {
 			// wait for the user to stop the database
 		}
 		scan.close();
+		System.exit(0);
 	}
 
 }
