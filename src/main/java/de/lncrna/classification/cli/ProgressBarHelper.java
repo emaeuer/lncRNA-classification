@@ -1,58 +1,84 @@
 package de.lncrna.classification.cli;
 
-import java.util.stream.IntStream;
+import java.io.IOException;
+import java.io.PrintStream;
+
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarConsumer;
 import me.tongfei.progressbar.ProgressBarStyle;
 
 public class ProgressBarHelper {
+
+	// Adjusted implementation of ConsoleProgressBarConsumer (Inheritance is not possible)
+	private class CustomProgressBarConsumer implements ProgressBarConsumer {
+
+		private final PrintStream out;
+		private Terminal terminal = null;
 		
-		private final ProgressBar bar;
-		
-		/**
-		 * Progress bar for distance calculation
-		 * --> total number of calculations equals (listSize * (listSize + 1)) /2
-		 * 
-		 * @param listSize
-		 * @param startIndex
-		 * @param taskName
-		 */
-		public ProgressBarHelper(int listSize, int startIndex, String taskName) {
-			long totalNumberOfCalculations = (Long.valueOf(listSize) * (listSize + 1)) / 2;
-			this.bar = new ProgressBarBuilder()
-					.setInitialMax(totalNumberOfCalculations)
-//					.setTaskName(taskName)
-					.setStyle(ProgressBarStyle.ASCII)
-					.setUpdateIntervalMillis(2000)
-					.showSpeed()
-					.build();
-			this.bar.stepTo(IntStream.range(0, startIndex).sum());
-		}
-		
-		/**
-		 * Progress bar for filtering 
-		 * --> total number of calculations equals the size of the list
-		 * 
-		 * @param listSize
-		 * @param taskName
-		 */
-		public ProgressBarHelper(int listSize, String taskName) {
-			this.bar = new ProgressBarBuilder()
-					.setInitialMax(listSize)
-//					.setTaskName(taskName)
-					.setStyle(ProgressBarStyle.ASCII)
-					.setUpdateIntervalMillis(2000)
-					.showSpeed()
-					.build();
-		}
-		
-		public void stop() {
-			this.bar.close();
+		private int maxProgressLength = 80;
+
+		public CustomProgressBarConsumer(int maxProgressLength) {
+			this.maxProgressLength = maxProgressLength;
+			try {
+				this.terminal = TerminalBuilder.builder().dumb(true).build();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			out = System.out;
 		}
 
-		public synchronized void next() {
-			this.bar.step();
+		@Override
+		public int getMaxProgressLength() {
+			return this.maxProgressLength;
 		}
-		
+
+		@Override
+		public void accept(String str) {
+			out.print('\r'); // before update
+			out.print(str);
+		}
+
+		@Override
+		public void close() {
+			out.println();
+			out.flush();
+			try {
+				terminal.close();
+			} catch (IOException ignored) {
+				/* noop */ }
+		}
+
+	}
+
+	private ProgressBar bar = null;
+
+	public void stop() {
+		if (this.bar != null) {
+			this.bar.close();
+		}
+	}
+
+	public synchronized void next() {
+		this.bar.step();
+	}
+
+	public void nextBar(long numberOfCalculations, String taskName) {
+		if (this.bar != null) {
+			stop();
+		}
+
+		this.bar = new ProgressBarBuilder()
+				.setInitialMax(numberOfCalculations)
+				.setTaskName(taskName)
+				.setStyle(ProgressBarStyle.ASCII)
+				.setUpdateIntervalMillis(2000)
+				.showSpeed()
+				.setConsumer(new CustomProgressBarConsumer(160))
+				.build();
+	}
+
 }

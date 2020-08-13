@@ -45,11 +45,24 @@ public class PropertyHandler {
 		return convertToValueType(value, valueType);
 	}
 
-	private <T> T convertToValueType(String value, Class<T> valueType) {
+	private <T> T convertToValueType(String value, Class<T> valueType) {		
 		if (String.class == valueType) {
 			return valueType.cast(value);
 		} else if (Integer.class == valueType) {
+			if (value == null) {
+				return valueType.cast(0);
+			}
 			return valueType.cast(Integer.valueOf(value));
+		} else if (Float.class == valueType) {
+			if (value == null) {
+				return valueType.cast(0f);
+			}
+			return valueType.cast(Float.valueOf(value));
+		} else if (Double.class == valueType) {
+			if (value == null) {
+				return valueType.cast(0.0);
+			}
+			return valueType.cast(Double.valueOf(value));
 		} else if (File.class == valueType) {
 			return valueType.cast(new File(value));
 		} else {

@@ -34,7 +34,8 @@ public class CommandUtil {
 			List<RNASequence> randomSequences = new ArrayList<>();
 			Random rand = new Random();
 			for (int i = 0; i < sequenceNumber; i++) {
-				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
+//				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
+				randomSequences.add(sequences.remove(i));
 			}
 			sequences = randomSequences;
 		}

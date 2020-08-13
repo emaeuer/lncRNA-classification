@@ -2,15 +2,18 @@ package de.lncrna.classification.cli;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.biojava.nbio.core.sequence.RNASequence;
 
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
-import de.lncrna.classification.init.distance.DistanceCalculationCoordinator;
-import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.distance.DistanceCalculationInitializer;
+import de.lncrna.classification.distance.DistanceType;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -24,6 +27,46 @@ import picocli.CommandLine.Option;
 	separator = " ")
 public class InitCommand implements Runnable {
 	
+	private static class BlastParameter {
+		
+		@Option(names = {"-bf", "--blastFileLocation"}, description = "File location of the blast file with calculated distances") 
+		private File blastFileLocation;
+		
+	}
+	
+	private static class NeedlemanWunschParameter {
+		
+		@Option(names = {"-gop", "--gapOpenPenalty"}, defaultValue = "-1", description = "Penalty for opening a gap in the sequence alignment") 
+		private int gapOpenPenalty;
+		
+		@Option(names = {"-gcp", "--gapClosePenalty"}, defaultValue = "-1", description = "Penalty for closing a gap in the sequence alignment") 
+		private int gapClosePenalty;
+
+	}
+	
+	private static class NGramParameters {
+		
+		@Option(names = {"-ng", "--nGramLength"}, defaultValue = "-1", description = "Define the length of the n grams/ k mers") 
+		private int nGramLength;
+		
+	}
+	
+	private static class DistanceSpecificParameters {
+		
+		@ArgGroup(exclusive = false)
+		private BlastParameter blast;
+		
+		@ArgGroup(exclusive = false)
+		private NeedlemanWunschParameter needlemanWunsch;
+		
+		@ArgGroup(exclusive = false)
+		private NGramParameters ngram;
+		
+	}
+	
+	@ArgGroup(exclusive = true)
+	private DistanceSpecificParameters parameters;
+	
 	@Option(names = {"-r", "--restart"}, defaultValue = "false", description = "The existing distance matrix will be either overwritten or new distances will be appended") 
 	private boolean restartCalculation;
 	
@@ -31,7 +74,7 @@ public class InitCommand implements Runnable {
 	private boolean embeddedMode;
 	
 	@Option(names = {"-d", "--distanceAlgorithm"}, required = true, description = "Choose a distance measure. Possible values: ${COMPLETION-CANDIDATES}") 
-	private DistanceProperties distanceProp;
+	private DistanceType distanceProp;
 	
 	@Option(names = {"-f", "--fastaFileLocation"}, description = "File location of the fasta file with the sequences") 
 	private File fastaFileLocation;
@@ -45,13 +88,17 @@ public class InitCommand implements Runnable {
 	@Option(names = {"-w", "--distancePrintingDelta"}, defaultValue = "-1", description = "Time interval of the printer to check for new lines which can be appended to the distance matrix") 
 	private int printingDelta;
 	
+	@Option(names = {"-b", "--blocking"}, defaultValue = "false", description = "Use blocking (a block is a canopy cluster calculated with blast distances to reduce number of distance calculations") 
+	private boolean blocking;
+	
 	@Override
-	public void run() {
+	public void run() {		
 		PropertyKeyHelper.setGlobalPrefix(distanceProp.name());
 		
-		boolean hasChanged = refreshIfNecessary(PropertyKeys.FASTA_FILE_LOCATION, fastaFileLocation);
-		refreshIfNecessary(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, numberOfThreads);
-		refreshIfNecessary(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, printingDelta);
+		boolean hasChanged = CLIHelper.refreshIfNecessary(PropertyKeys.FASTA_FILE_LOCATION, fastaFileLocation);
+		CLIHelper.refreshIfNecessary(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, numberOfThreads);
+		CLIHelper.refreshIfNecessary(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, printingDelta);
+		refreshDistanceSpecificParameters();
 		
 		List<RNASequence> sequences = CommandUtil.getSequences(sequenceNumber);
 		
@@ -61,29 +108,27 @@ public class InitCommand implements Runnable {
 		
 		Neo4jDatabaseSingleton.initInstance(embeddedMode);
 		
-		DistanceCalculationCoordinator coordinator = new DistanceCalculationCoordinator(sequences, distanceProp.getCalculator());
-//		coordinator.subscribe(new DistancePersister());
-		coordinator.startDistanceCalculation();
+		Map<String, String> seqs = sequences.stream()
+				.collect(Collectors.toMap(seq -> seq.getDescription(), seq -> seq.getSequenceAsString()));
+		
+		new DistanceCalculationInitializer(seqs, distanceProp, blocking);
+	}
 
+	private void refreshDistanceSpecificParameters() {
+		if (parameters != null && parameters.blast != null) {
+			CLIHelper.refreshIfNecessary(PropertyKeys.BLAST_RESULT_FILE_LOCATION, parameters.blast.blastFileLocation);
+		}
+		
+		if (parameters != null && parameters.ngram != null) {
+			CLIHelper.refreshIfNecessary(PropertyKeys.N_GRAM_LENGTH, parameters.ngram.nGramLength);
+		}
+		
+		if (parameters != null && parameters.needlemanWunsch != null) {
+			CLIHelper.refreshIfNecessary(PropertyKeys.GAP_OPEN_PENALTY, parameters.needlemanWunsch.gapOpenPenalty);
+			CLIHelper.refreshIfNecessary(PropertyKeys.GAP_CLOSE_PENALTY, parameters.needlemanWunsch.gapClosePenalty);
+		}
 	}
 	
-	private boolean refreshIfNecessary(PropertyKeys key, int value) {
-		if (value != -1) {
-			PropertyHandler.HANDLER.setPropertieValue(key, value);
-			return true;
-		}	
-		return false;
-	}
 	
-	private boolean refreshIfNecessary(PropertyKeys key, Object value) {
-		if (value != null) {
-			Object old = PropertyHandler.HANDLER.getPropertyValue(key, value.getClass());
-			if (old != null && !old.equals(value)) {
-				PropertyHandler.HANDLER.setPropertieValue(key, value);
-				return true;
-			}
-		}	
-		return false;
-	}
 
 }

@@ -1,4 +1,4 @@
-package de.lncrna.classification.init.filter;
+package de.lncrna.classification.filter;
 
 import java.io.BufferedReader;
 import java.io.IOException;

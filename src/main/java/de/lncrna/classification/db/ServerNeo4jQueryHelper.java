@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.biojava.nbio.core.sequence.RNASequence;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 
 import de.lncrna.classification.clustering.Cluster;
+import de.lncrna.classification.distance.DistancePair;
 import de.lncrna.classification.util.data.DistanceDAO;
 
 public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandler, Result> {
@@ -31,9 +31,9 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 	}
 	
 	@Override
-	public void insertAllSequences(List<RNASequence> nodes) {
+	public void insertAllSequences(List<String> nodes) {
 		nodes.parallelStream()
-			.map(s -> String.format(Neo4jQueryHelper.INSERT_ALL_SEQUENCES, s.getDescription(), s.getSequenceAsString()))
+			.map(s -> String.format(Neo4jQueryHelper.INSERT_ALL_SEQUENCES, s))
 			.forEach(this.handler::commitQuery);
 	}
 	
@@ -154,7 +154,7 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 		
 		// Insert new clusters corresponding to this configuration
 		clusters.parallelStream()
-			.peek(c -> System.out.println(c.getSequences()))
+			.filter(c -> c.getClusterSize() > 1) // only persist 'real' clusters with at least two sequences
 			.forEach(c -> this.handler.commitQuery(
 					String.format(
 							Neo4jQueryHelper.INSERT_CLUSTER_INFORMATION, 
@@ -183,6 +183,31 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 		
 		builder.replace(builder.length() - 2, builder.length(), "]");
 		return builder.toString();
+	}
+
+	@Override
+	public void addDistance(DistancePair item) {
+		this.handler.commitQuery(
+				String.format(
+						Neo4jQueryHelper.INSERT_DISTANCE, 
+						item.getSequenceName1(), item.getSequenceName2(), item.getDistanceType().name(), item.getDistance()));
+	}
+
+	@Override
+	public Map<Long, List<String>> getClusters(String distanceName, String algorithmName) {
+		return this.handler.executeQuery(
+				String.format(
+						Neo4jQueryHelper.GET_ALL_CLUSTERS,
+						distanceName, algorithmName), 
+				r -> {
+					return r.stream()
+							.collect(Collectors.toMap(result -> result.get("id").asLong(), result -> result.get("sequences").asList(o -> o.toString())));
+				});
+	}
+	
+	@Override
+	public void setClusterPersisted(long id) {
+		this.handler.commitQuery(String.format(Neo4jQueryHelper.SET_CLUSTER_PERSISTED, id));
 	}
 	
 }

@@ -8,7 +8,7 @@ import java.util.Set;
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
-import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.distance.DistanceType;
 
 /**
  * Concrete Implementation of the strategy pattern. Implements an hierarchical clustering 
@@ -22,9 +22,9 @@ public class HierarchicalClustering implements ClusteringAlgorithm {
 
 	private final Set<String> sequences = new HashSet<>();
 
-	private final DistanceProperties distanceProperty;
+	private final DistanceType distanceProperty;
 
-	public HierarchicalClustering(DistanceProperties distanceProperty) {
+	public HierarchicalClustering(DistanceType distanceProperty) {
 		this.distanceProperty = distanceProperty;
 	}
 	
@@ -50,7 +50,7 @@ public class HierarchicalClustering implements ClusteringAlgorithm {
 	}
 	
 	@Override
-	public DistanceProperties getDistanceAlgortithm() {
+	public DistanceType getDistanceAlgortithm() {
 		return this.distanceProperty;
 	}
 	

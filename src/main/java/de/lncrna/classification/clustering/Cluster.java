@@ -23,6 +23,12 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	
 	public double averageDistanceWithin = -1;
 	
+	public Cluster(final T algorithm, List<String> sequences, String clustroid) {
+		this.algorithm = algorithm;
+		this.algorithm.initCluster(sequences);
+		this.clustroid = clustroid;
+	}
+	
 	public Cluster(final T algorithm, List<String> sequences) {
 		this.algorithm = algorithm;
 		this.algorithm.initCluster(sequences);

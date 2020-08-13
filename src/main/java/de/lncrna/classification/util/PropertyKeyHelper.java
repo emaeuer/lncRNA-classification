@@ -11,6 +11,7 @@ public class PropertyKeyHelper {
 		FILE_LOCATION(true),
 		NEXT_RECORD(true),
 		INTRON_API_URL_PATTERN(false),
+		STAT_REFRESH_INTERVAL(false),
 		
 		// Neo4J-Properties
 		NEO4J_LOCATION(false),
@@ -26,7 +27,15 @@ public class PropertyKeyHelper {
 		N_GRAM_LENGTH(false),
 		
 		// BlastDistance specific properties
-		BLAST_RESULT_FILE_LOCATION(false);
+		BLAST_RESULT_FILE_LOCATION(false),
+		
+		// Hierarchical/ KMeans specific properties
+		CLUSTER_COUNT(true),
+		AVERAGE_CLUSTER_DISTANCE_THRESHOLD(true),
+		
+		// Canopy clustering specific properties
+		LOOSE_THRESHOLD(false),
+		TIGHT_THRESHOLD(false);
 
 		private final boolean prefixNecessary;
 		

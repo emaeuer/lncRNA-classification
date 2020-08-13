@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 import org.biojava.nbio.core.sequence.RNASequence;
 
-import de.lncrna.classification.init.filter.NumberOfIntronsFilter;
+import de.lncrna.classification.filter.NumberOfIntronsFilter;
 import de.lncrna.classification.util.fasta.FastaExporter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -37,9 +37,8 @@ public class FilterCommand implements Runnable {
 	public void run() {
 		List<RNASequence> sequences = CommandUtil.getSequences(-1, inputFastaFile);
 		
-		System.out.println(sequences.size());
-
-		this.status = new ProgressBarHelper(sequences.size(), "Filtering sequences");
+		this.status = new ProgressBarHelper();
+		this.status.nextBar(sequences.size(), "Filtering Sequences");
 		
 		List<RNASequence> filteredSequences = sequences.parallelStream()
 			.filter(s -> NumberOfIntronsFilter.hasAtLeastOneIntron(s.getDescription()))
@@ -47,8 +46,6 @@ public class FilterCommand implements Runnable {
 			.collect(Collectors.toList());
 		
 		this.status.stop();
-		
-		System.out.println(filteredSequences.size());
 		
 		try {
 			FastaExporter.saveFasta(outputFastaFile, filteredSequences);

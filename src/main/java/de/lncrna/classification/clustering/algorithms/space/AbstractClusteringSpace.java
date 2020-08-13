@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
-import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.distance.DistanceType;
 
 public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
@@ -18,9 +18,11 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	
 	private T algorithm;
 	
-	private final DistanceProperties distanceProp;
+	private final DistanceType distanceProp;
 	
-	public AbstractClusteringSpace(DistanceProperties distanceProp) {
+	private int iterationCounter = 0;
+	
+	public AbstractClusteringSpace(DistanceType distanceProp) {
 		this.distanceProp = distanceProp;
 		initSpace();
 	}
@@ -41,7 +43,7 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 		return algorithm;
 	}
 	
-	protected DistanceProperties getDistanceProperties() {
+	protected DistanceType getDistanceProperties() {
 		return this.distanceProp;
 	}
 
@@ -58,6 +60,20 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	
 	public void persistClusterInformation() {
 		Neo4jDatabaseSingleton.getQueryHelper().updateClusterInformation(this.clusters);
+	}
+
+	public long getNumberOfClusters() {
+		return clusters.stream()
+				.filter(c -> c.getClusterSize() > 1)
+				.count();
+	}
+
+	protected int getIterationCounter() {
+		return iterationCounter;
+	}
+
+	protected void incrementIterationCounter() {
+		this.iterationCounter++;
 	}
 	
 }

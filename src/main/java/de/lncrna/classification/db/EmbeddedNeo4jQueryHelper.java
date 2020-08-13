@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.biojava.nbio.core.sequence.RNASequence;
 import org.neo4j.graphdb.Result;
 
 import de.lncrna.classification.clustering.Cluster;
+import de.lncrna.classification.distance.DistancePair;
 import de.lncrna.classification.util.data.DistanceDAO;
 
 public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jHandler, Result> {
@@ -22,9 +22,9 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 	}
 	
 	@Override
-	public void insertAllSequences(List<RNASequence> nodes) {
+	public void insertAllSequences(List<String> nodes) {
 		nodes.parallelStream()
-			.map(s -> String.format(Neo4jQueryHelper.INSERT_ALL_SEQUENCES, s.getDescription(), s.getSequenceAsString()))
+			.map(s -> String.format(Neo4jQueryHelper.INSERT_ALL_SEQUENCES, s))
 			.forEach(this.handler::commitQuery);
 	}
 	
@@ -110,7 +110,7 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 			return this.handler.executeQuery(
 					String.format(
 							Neo4jQueryHelper.GET_AVERAGE_DISTANCE_CLUSTER,
-							toCollectionString(sequences), distanceName), 
+							toCollectionString(sequences), distanceName, 1), 
 					r -> {
 						return r.stream()
 							.mapToDouble(m -> (double) m.get("avgClusterDistance"))
@@ -155,6 +155,7 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 		
 		// Insert new clusters corresponding to this configuration
 		clusters.parallelStream()
+			.filter(c -> c.getClusterSize() > 1) // only persist 'real' clusters with at least two sequences
 			.forEach(c -> this.handler.commitQuery(
 					String.format(
 							Neo4jQueryHelper.INSERT_CLUSTER_INFORMATION, 
@@ -181,8 +182,36 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 		sequences.stream()
 			.forEach(s -> builder.append(String.format("\"%s\", ", s)));
 		
-		builder.replace(builder.length() - 2, builder.length(), "]");
+		if (builder.length() > 1) {
+			builder.replace(builder.length() - 2, builder.length(), "]");
+		}
 		return builder.toString();
+	}
+
+	@Override
+	public void addDistance(DistancePair item) {
+		this.handler.commitQuery(
+				String.format(
+						Neo4jQueryHelper.INSERT_DISTANCE, 
+						item.getSequenceName1(), item.getSequenceName2(), item.getDistanceType().name(), item.getDistance()));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<Long, List<String>> getClusters(String distanceName, String algorithmName) {
+		return this.handler.executeQuery(
+				String.format(
+						Neo4jQueryHelper.GET_ALL_CLUSTERS,
+						distanceName, algorithmName), 
+				r -> {
+					return r.stream()
+							.collect(Collectors.toMap(result -> (Long) result.get("id"), result -> (List<String>) result.get("sequences")));
+				});
+	}
+	
+	@Override
+	public void setClusterPersisted(long id) {
+		this.handler.commitQuery(String.format(Neo4jQueryHelper.SET_CLUSTER_PERSISTED, id));
 	}
 
 	

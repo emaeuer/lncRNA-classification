@@ -2,6 +2,8 @@ package de.lncrna.classification.db;
 
 import java.io.File;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
@@ -12,11 +14,14 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.kernel.DeadlockDetectedException;
 
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 
 public class EmbeddedNeo4jHandler implements Neo4jHandler<Result> {
+	
+	private static final Logger LOG = Logger.getLogger("logger");
 	
 	private final DatabaseManagementService managementService;
 	private final GraphDatabaseService graphDB;
@@ -74,13 +79,19 @@ public class EmbeddedNeo4jHandler implements Neo4jHandler<Result> {
 		try (Transaction tx = graphDB.beginTx()) {			
 			tx.execute(query);
 			tx.commit();
+		} catch (DeadlockDetectedException e) {
+			LOG.log(Level.INFO, "Neo4j detected a deadlock and aborted the transaction. Restarting the transaction and trying again");
+			commitQuery(query);
 		}
 	}
 	
 	@Override
 	public <R> R executeQuery(String query, Function<Result, R> mapper) {
-		try (Transaction tx = graphDB.beginTx()) {			
+		try (Transaction tx = graphDB.beginTx()) {	
 			return mapper.apply(tx.execute(query));
+		} catch (DeadlockDetectedException e) {
+			LOG.log(Level.INFO, "Neo4j detected a deadlock and aborted the transaction. Restarting the transaction and trying again");
+			return executeQuery(query, mapper);
 		}
 	}
 

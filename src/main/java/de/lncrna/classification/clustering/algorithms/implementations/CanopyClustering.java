@@ -1,23 +1,22 @@
 package de.lncrna.classification.clustering.algorithms.implementations;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-
-import org.apache.commons.lang3.NotImplementedException;
+import java.util.Set;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
-import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.distance.DistanceType;
 
 public class CanopyClustering implements ClusteringAlgorithm  {
 
-	private final List<String> sequences = new ArrayList<>();
+	private final Set<String> sequences = new HashSet<>();
 	
-	private final DistanceProperties distanceProperty;
+	private final DistanceType distanceProperty;
 
-	public CanopyClustering(DistanceProperties distanceProperty) {
+	public CanopyClustering(DistanceType distanceProperty) {
 		this.distanceProperty = distanceProperty;
 	}
 
@@ -28,7 +27,7 @@ public class CanopyClustering implements ClusteringAlgorithm  {
 
 	@Override
 	public void mergeWithOther(Cluster<?> cluster) {
-		throw new NotImplementedException("This clustering algorithm doesn't support merging");		
+		this.sequences.addAll(cluster.getSequences());
 	}
 
 	@Override
@@ -42,7 +41,7 @@ public class CanopyClustering implements ClusteringAlgorithm  {
 	}
 
 	@Override
-	public DistanceProperties getDistanceAlgortithm() {
+	public DistanceType getDistanceAlgortithm() {
 		return this.distanceProperty;
 	}
 

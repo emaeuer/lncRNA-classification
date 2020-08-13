@@ -1,4 +1,4 @@
-package de.lncrna.classification.init.filter;
+package de.lncrna.classification.filter;
 
 public class FailedToReceiveIntronException extends RuntimeException {
 

@@ -2,15 +2,19 @@ package de.lncrna.classification.clustering.algorithms.space;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.implementations.CanopyClustering;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
-import de.lncrna.classification.init.distance.DistanceProperties;
+import de.lncrna.classification.distance.DistanceType;
+import de.lncrna.classification.util.PropertyHandler;
+import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 
 public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyClustering> {
 
@@ -19,7 +23,7 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 	private final float looseTreshold;
 	private final float tightTreshold;
 	
-	public CanopyClusteringSpace(DistanceProperties distanceProp, float looseTreshold, float tightTreshold) {
+	public CanopyClusteringSpace(DistanceType distanceProp, float looseTreshold, float tightTreshold) {
 		super(distanceProp);
 		this.looseTreshold = looseTreshold;
 		this.tightTreshold = tightTreshold;
@@ -28,9 +32,11 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 	@Override
 	protected void initSpace() {
 		LOG.log(Level.INFO, "Starting canopy clustering ");
-		LOG.log(Level.INFO, "Initializing clusters");
+		LOG.log(Level.INFO, "Initializing clustering space (loading all seqeunces)");
 		
 		this.candidates = new ArrayList<>(Neo4jDatabaseSingleton.getQueryHelper().getAllSequenceNames());
+		
+		LOG.log(Level.INFO, "Finished initializing clustering space");
 	}
 
 	@Override
@@ -39,10 +45,17 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 			return false;
 		}
 		
+		incrementIterationCounter();
+		
+		int refreshInterval = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.STAT_REFRESH_INTERVAL, Integer.class);
+		if (getIterationCounter() % refreshInterval == 0) {
+			LOG.log(Level.INFO, String.format("Canopy clustering: Iteration %d; %d candidates remaining", getIterationCounter(), this.candidates.size()));
+		}
+		
 		// randomly choose a sequence from the 
 		String center = this.candidates.remove(new Random().nextInt(this.candidates.size()));
 		
-		List<String> sequencesOfCluster = new ArrayList<>();
+		Set<String> sequencesOfCluster = new HashSet<>();
 		sequencesOfCluster.add(center);
 		
 		Map<Boolean, List<String>> sequencesToAdd = 
@@ -52,8 +65,34 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		
 		candidates.removeAll(sequencesToAdd.getOrDefault(true, Collections.emptyList()));
 		
-		addCluster(new Cluster<>(new CanopyClustering(getDistanceProperties()), sequencesOfCluster));
+		addCluster(new Cluster<>(new CanopyClustering(getDistanceProperties()), new ArrayList<>(sequencesOfCluster), center));
 		return true;
+	}
+
+	@Override
+	public void addCluster(Cluster<CanopyClustering> newCluster) {
+		Cluster<CanopyClustering> existingCluster = null;
+		boolean containsAll = false;
+		
+		for (Cluster<CanopyClustering> cluster : getClusters()) {
+			if (cluster.getClusterSize() > newCluster.getClusterSize()) {
+				containsAll = cluster.getSequences().containsAll(newCluster.getSequences());
+			} else {
+				containsAll = newCluster.getSequences().containsAll(cluster.getSequences());
+			}
+			
+			if (containsAll) {
+				existingCluster = cluster;
+				break;
+			}
+		}
+		
+		if (existingCluster != null) {
+			existingCluster.mergeWithOther(newCluster);
+		}
+		
+		super.addCluster(newCluster);
+		
 	}
 
 }

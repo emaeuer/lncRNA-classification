@@ -5,9 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.biojava.nbio.core.sequence.RNASequence;
-
 import de.lncrna.classification.clustering.Cluster;
+import de.lncrna.classification.distance.DistancePair;
 import de.lncrna.classification.util.data.DistanceDAO;
 
 public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
@@ -61,13 +60,13 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"OPTIONAL MATCH (seq1:Sequence) -[r:distance]- (seq2:Sequence) " +
 			"WITH seq1, r.%s AS distance, seq2 " +
 			"WHERE seq1 <> seq2 " +
-			"RETURN avg(coalesce(distance, %s))  AS avgClusterDistance";
+			"RETURN avg(coalesce(distance, %d))  AS avgClusterDistance";
 	
 	public static final String GET_SEQUENCES_WITHIN_TRESHOLD =
 			"OPTIONAL MATCH (:Sequence{seqName:\"%1$s\"})-[r:distance]-(seq:Sequence) " +  
 			"WHERE r.%4$s < %2$s " +
 			"WITH collect(seq.seqName) AS tightSequences " +
-			"OPTIONAL MATCH (:Sequence{seqName:\"%1$s\"}})-[r:distance]-(seq:Sequence) " + 
+			"OPTIONAL MATCH (:Sequence{seqName:\"%1$s\"})-[r:distance]-(seq:Sequence) " + 
 			"WHERE %2$s <= r.%4$s <= %3$s " +
 			"RETURN {tightSequences:tightSequences, looseSequences:collect(seq.seqName)} AS result";
 	
@@ -85,9 +84,21 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WHERE seq.seqName=\"%s\" " + 
 			"CREATE (seq)-[:clustroid_of]->(c)";
 	
+	public static final String GET_ALL_CLUSTERS = 
+			"MATCH (c:Cluster {distance:\"%s\", algorithm:\"%s\"}) " +
+			"MATCH (seq:Sequence)-[:in_cluster]-(c) " +
+			"WHERE c.persisted IS NULL " +
+			"RETURN ID(c) AS id, collect(seq.seqName) AS sequences " +
+			"ORDER BY id";
+	
+	public static final String SET_CLUSTER_PERSISTED = 
+			"MATCH (c:Cluster) " + 
+			"WHERE ID(c) = %s " +
+			"SET c.persisted = true";
+	
 	// TODO Non existing relations are not considered --> should eventually get distance 1 
 	public static final String GET_MAXIMAL_DISTINCE_WITHIN_CLUSTER = 
-			"MATCH (seq:Sequence)" +
+			"MATCH (seq:Sequence) " +
 			"WHERE seq.seqName IN %s " +
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq1 " +
@@ -95,9 +106,11 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"MATCH (seq1)-[r:distance]-(seq2) " +
 			"RETURN max(r.%s) AS maxDistance";
 	
+	
+	
 	public List<String> getAllSequenceNames();
 	
-	public void insertAllSequences(List<RNASequence> nodes);
+	public void insertAllSequences(List<String> nodes);
 	
 	public void addDistance(DistanceDAO dao);
 	
@@ -116,5 +129,11 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 	public void updateClusterInformation(List<? extends Cluster<?>> clusters);
 	
 	public float getMaxDistanceWithinCluster(Collection<String> sequences, String distanceName);
+	
+	public Map<Long, List<String>> getClusters(String distanceName, String algorithmName);
+
+	public void setClusterPersisted(long id);
+	
+	public void addDistance(DistancePair item);
 
 }
