@@ -32,3 +32,8 @@ hs_err_pid*
 
 #Neo4J
 /data/*
+
+.vscode/
+.devcontainer
+.classpath
+.facotrypath

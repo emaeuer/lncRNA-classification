@@ -30,8 +30,8 @@ public class PropertyKeyHelper {
 		BLAST_RESULT_FILE_LOCATION(false),
 		
 		// Hierarchical/ KMeans specific properties
-		CLUSTER_COUNT(true),
-		AVERAGE_CLUSTER_DISTANCE_THRESHOLD(true),
+		CLUSTER_COUNT(false),
+		AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
 		
 		// Canopy clustering specific properties
 		LOOSE_THRESHOLD(false),

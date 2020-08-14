@@ -50,9 +50,9 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 		if (c1 != c2 && c1 != null) {
 			incrementIterationCounter();
 			
-			int refreshInterval = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.STAT_REFRESH_INTERVAL, int.class);
+			int refreshInterval = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.STAT_REFRESH_INTERVAL, Integer.class);
 			if (getIterationCounter() % refreshInterval == 0) {
-				double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.AVERAGE_CLUSTER_DISTANCE_THRESHOLD, double.class);
+				double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.AVERAGE_CLUSTER_DISTANCE_THRESHOLD, Double.class);
 				double averageClusterDistance = calculateAverageClusterDistance();
 				
 				if (averageClusterDistance >= maxAverageClusterDistance) {
@@ -73,7 +73,7 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 	}
 	
 	private boolean breakCondition() {
-		int maxClusterCount = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.CLUSTER_COUNT, int.class);
+		int maxClusterCount = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.CLUSTER_COUNT, Integer.class);
 		
 		return getClusters().size() == 1 
 			|| this.orderedDistances.isEmpty() 
