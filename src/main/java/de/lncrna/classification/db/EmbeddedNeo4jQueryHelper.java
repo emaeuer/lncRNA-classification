@@ -154,7 +154,7 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 						clusterAlgorithm, distanceAlgorithm));
 		
 		// Insert new clusters corresponding to this configuration
-		clusters.parallelStream()
+		clusters.stream()
 			.filter(c -> c.getClusterSize() > 1) // only persist 'real' clusters with at least two sequences
 			.forEach(c -> this.handler.commitQuery(
 					String.format(

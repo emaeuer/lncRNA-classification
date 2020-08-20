@@ -5,15 +5,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow.Publisher;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.collections4.SetUtils;
 
@@ -31,9 +31,9 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 	
 	private int currentBlockID;
 	
-	private ExecutorService service;
+	private ExecutorService subscriberThreadPool;
 	
-	private BlockingQueue<DistancePair> values = new ArrayBlockingQueue<>(100000);
+	private ExecutorService publishThreadPool = Executors.newSingleThreadExecutor();
 	
 	private final List<DistancePairSubscription> subscriptions = new ArrayList<>();
 	
@@ -43,19 +43,24 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 	
 	private int numberOfBlocks = 1;
 	
+	private AtomicInteger lastPublishedSubscription = new AtomicInteger(0);
+	
+	private Queue<DistancePair> availableValues = new ConcurrentLinkedQueue<>();
+	
 	public DistancePairSupplier(Map<String, String> sequences) {
 		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
 		
 		this.sequences = sequences;
-		this.service = Executors.newFixedThreadPool(threadNumber);
+		this.subscriberThreadPool = Executors.newFixedThreadPool(threadNumber);
 		
 		this.status = new ProgressBarHelper();
+		
+		this.publishThreadPool.execute(this::publishItems);
 	}
 	
 	public void addCompareBlock(List<String> sequenceBlock) {
-		int waitingTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
 		DistancePair firstPair = null;
-		
+				
 		for (int i = 0; i < sequenceBlock.size(); i++) {
 			String currentSequenceName = sequenceBlock.get(i);
 			String currentSequence = this.sequences.get(currentSequenceName);
@@ -68,23 +73,16 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 					continue;
 				}
 				
-				while (values.remainingCapacity() == 0) {
-					try {
-						Thread.sleep(waitingTime);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				
 				DistancePair currentPair = new DistancePair(currentSequenceName, currentSequence, compareSequenceName, compareSequence);
 				if (firstPair == null) {
 					firstPair = currentPair;
 					this.blockStarts.put(firstPair, sequenceBlock.size());
 				}
-				this.values.add(currentPair);
+				
+				this.availableValues.add(currentPair);
 			}
 		}
+		
 		updateMadeComparisons(sequenceBlock);
 	}
 	
@@ -99,6 +97,44 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		// check if the sequences were in a previous block together
 		return !SetUtils.intersection(blocks1, blocks2).isEmpty();
 	}
+	
+	private void publishItems() {
+		int sleepTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
+		
+		// stopped in close
+		while (true) {
+			if (this.subscriptions.isEmpty()) {
+				continue;
+			}
+			
+			DistancePairSubscription subscription = this.subscriptions.get(this.lastPublishedSubscription.get());
+			int remainingCapacity = subscription.getRemainingQueueCapacity();
+			
+			subscription.supplyValues(pollAvailableValues(remainingCapacity));
+			
+			this.lastPublishedSubscription.incrementAndGet();
+			
+			if (this.lastPublishedSubscription.get() >= this.subscriptions.size()) {
+				this.lastPublishedSubscription.set(0);
+				try {
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					break;
+				}
+			}
+		}
+	}
+
+	private List<DistancePair> pollAvailableValues(int remainingCapacity) {
+		List<DistancePair> availableValues = new ArrayList<>();
+		
+		for (int i = 0; i < remainingCapacity && !this.availableValues.isEmpty(); i++) {
+			availableValues.add(this.availableValues.poll());
+		}
+		
+		return availableValues;
+	}
 
 	private void updateMadeComparisons(List<String> sequenceBlock) {
 		for (String seq : sequenceBlock) {
@@ -107,30 +143,24 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		}
 		this.currentBlockID++;
 	}
-
-	public BlockingQueue<DistancePair> availableValues() {
-		return this.values;
-	}
 	
-	public synchronized DistancePair nextSequence() throws InterruptedException {
-		DistancePair next = this.values.poll(10, TimeUnit.SECONDS);
+	public synchronized void nextSequence(DistancePair next) {
 		if (next != null) {
 			if (this.blockStarts.containsKey(next)) {
-				int listSize = this.blockStarts.get(next);
+				int listSize = this.blockStarts.remove(next);
 				long totalNumberOfCalculations = (Long.valueOf(listSize) * (listSize + 1)) / 2 - listSize;
-				this.status.nextBar(totalNumberOfCalculations, String.format("Block %d of %d", this.blockCounter, this.numberOfBlocks));
+				this.status.nextBlock(totalNumberOfCalculations, String.format("Block %d of %d", this.blockCounter, this.numberOfBlocks));
 				this.blockCounter++;
 			}
 			this.status.next();
 		}
-		return next;
 	}
 
 	@Override
 	public void subscribe(Subscriber<? super DistancePair> subscriber) {
 		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
 		if (subscriptions.size() < threadNumber) {
-			service.submit(() -> {
+			subscriberThreadPool.submit(() -> {
 				DistancePairSubscription subscription = new DistancePairSubscription(this, subscriber);
 				this.subscriptions.add(subscription);
 				subscriber.onSubscribe(subscription);
@@ -142,9 +172,18 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 
 	@Override
 	public void close() throws Exception {
+		int sleepTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
+		
+		while (!this.availableValues.isEmpty()) {
+			Thread.sleep(sleepTime);
+		}
+		
+		this.publishThreadPool.shutdownNow();
+		
 		for (DistancePairSubscription subscribtion : subscriptions) {
 			subscribtion.cancel();
 		}		
+		
 		this.status.stop();
 	}
 

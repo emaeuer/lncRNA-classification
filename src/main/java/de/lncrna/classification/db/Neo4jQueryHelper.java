@@ -87,7 +87,7 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 	public static final String GET_ALL_CLUSTERS = 
 			"MATCH (c:Cluster {distance:\"%s\", algorithm:\"%s\"}) " +
 			"MATCH (seq:Sequence)-[:in_cluster]-(c) " +
-			"WHERE c.persisted IS NULL " +
+//			"WHERE c.persisted IS NULL " +
 			"RETURN ID(c) AS id, collect(seq.seqName) AS sequences " +
 			"ORDER BY id";
 	

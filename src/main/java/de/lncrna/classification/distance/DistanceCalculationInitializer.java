@@ -75,7 +75,8 @@ public class DistanceCalculationInitializer {
 
 	private void calculateBlock(long id, List<String> block) {
 		this.supplier.addCompareBlock(block);
-		Neo4jDatabaseSingleton.getQueryHelper().setClusterPersisted(id);
+		// TODO Cluster was just supplied for calculation but is not complete
+//		Neo4jDatabaseSingleton.getQueryHelper().setClusterPersisted(id);
 	}
 	
 }
