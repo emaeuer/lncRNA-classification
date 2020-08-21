@@ -32,6 +32,7 @@ public class PropertyKeyHelper {
 		// Hierarchical/ KMeans specific properties
 		CLUSTER_COUNT(false),
 		AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
+		MAX_ITERATION(false),
 		
 		// Canopy clustering specific properties
 		LOOSE_THRESHOLD(false),

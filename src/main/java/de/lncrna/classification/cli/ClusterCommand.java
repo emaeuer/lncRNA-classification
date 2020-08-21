@@ -54,6 +54,9 @@ public class ClusterCommand implements Runnable {
 		
 		@Option(names = {"-ka", "--kMaxAverageClusterDistance"}, defaultValue = "1", description = "Clustering stops when maximal average cluster distance is reached") 
 		private double maxAverageClusterDistance;
+
+		@Option(names = {"-m", "--maxIterations"}, defaultValue = "10000", description = "Clustering stops when maximal Iterations are reached.") 
+		private double maxIterations;
 		
 	}
 	

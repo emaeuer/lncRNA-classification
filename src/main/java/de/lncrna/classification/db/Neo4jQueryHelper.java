@@ -15,6 +15,21 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"MATCH (seq:Sequence) " +
 			"RETURN collect(seq.seqName) AS names";
 	
+	public static final String GET_RANDOM_SEQUENCE_NAMES =
+			"Match (seq:Sequence) - [d:distance] - (seq2:Sequence) " +
+			"WITH seq.seqName AS s_name, count(d) AS d_count " +
+			"WHERE %s <= d_count " +
+			"WITH s_name " +
+			"ORDER BY rand() " +
+			"LIMIT %s " + 
+			"RETURN collect(s_name) AS s_names";
+
+	public static final String GET_SEQUENCES_OF_CLUSTROID = 
+			"MATCH (clustroids:Sequence) - [d:distance] - (s:Sequence) " +
+			"WHERE clustroids.seqName IN %s " +
+			"WITH s.seqName AS s_name, min(d.%s) AS min_distance, clustroids.seqName AS c_name " +
+			"RETURN c_name, collect(s_name) AS s_names";
+	
 	public static final String INSERT_ALL_SEQUENCES = 
 			"MERGE (:Sequence {seqName:\"%s\"})";
 	
@@ -109,7 +124,11 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 	
 	
 	public List<String> getAllSequenceNames();
-	
+
+	public List<String> getRandomSequenceNames(int minDistancRelationships, int amount);
+
+	public Map<String, List<String>> getSequencesWithinCluster(List<String> centroids, String distanceName);
+
 	public void insertAllSequences(List<String> nodes);
 	
 	public void addDistance(DistanceDAO dao);
