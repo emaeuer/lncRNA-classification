@@ -1,8 +1,13 @@
 package de.lncrna.classification.distance;
 
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
@@ -10,34 +15,28 @@ import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
 public class DistancePairSubscription implements Subscription {
 	
 	private final DistancePairSupplier publisher;
+	
 	private final Subscriber<? super DistancePair> subscriber;
 	
-	private final ForkJoinPool pool = new ForkJoinPool();
+	private final BlockingQueue<DistancePair> values = new LinkedBlockingQueue<>(20000);
 	
-	public DistancePairSubscription(DistancePairSupplier publisher, Subscriber<? super DistancePair> subscriber) {
-		this.publisher = publisher;
+	private Executor executor = Executors.newFixedThreadPool(2);
+	
+	public DistancePairSubscription(DistancePairSupplier distancePairSupplier, Subscriber<? super DistancePair> subscriber) {
 		this.subscriber = subscriber;
+		this.publisher = distancePairSupplier;
 	}
 
 	@Override
-	public void request(long n) {		
-		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
-		if (this.pool.getRunningThreadCount() > 3 * threadNumber) {
-			// TODO let thread wait
-			this.subscriber.onNext(null);
-			return;
+	public void request(long n) {	
+		try {
+			DistancePair next = this.values.poll(10, TimeUnit.SECONDS);
+			this.publisher.nextSequence(next);
+			executor.execute(() -> this.subscriber.onNext(next));
+		} catch (InterruptedException e) {
+			this.subscriber.onError(e);
 		}
 		
-		for(int i = 0; i < n; i++) {
-			pool.execute(() -> {
-				try {
-					this.subscriber.onNext(this.publisher.nextSequence());
-				} catch (InterruptedException e) {
-					// TODO
-					e.printStackTrace();
-				}
-			}); 
-		}
 	}
 
 	@Override
@@ -45,13 +44,7 @@ public class DistancePairSubscription implements Subscription {
 		int waitingTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
 		try {
 			// wait until all values are processed
-			while (!this.publisher.availableValues().isEmpty()) {
-				Thread.sleep(waitingTime);
-			}
-			
-			// wait until all task are finished 
-			this.pool.shutdown();
-			while (this.pool.isTerminating()) {
+			while (!this.values.isEmpty()) {
 				Thread.sleep(waitingTime);
 			}
 			
@@ -61,4 +54,17 @@ public class DistancePairSubscription implements Subscription {
 		}
 		subscriber.onComplete();		
 	}
+	
+	public synchronized int getRemainingQueueCapacity() {
+		return this.values.remainingCapacity();
+	}
+	
+	public void supplyValues(List<DistancePair> items) {
+		this.values.addAll(items);
+	}
+
+	public void supplyValue(DistancePair item) {
+		this.values.add(item);
+	}
+	
 }

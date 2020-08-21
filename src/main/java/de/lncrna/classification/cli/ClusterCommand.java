@@ -101,7 +101,9 @@ public class ClusterCommand implements Runnable {
 		
 		LOG.log(Level.INFO, String.format("%s clustering completed created %d clusters", algorithm.name(), space.getNumberOfClusters()));
 		
+		LOG.log(Level.INFO, "Started persiting clusters");
 		space.persistClusterInformation();
+		LOG.log(Level.INFO, "Finished persiting clusters");
 		
 	}
 

@@ -60,6 +60,9 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		
 		Map<Boolean, List<String>> sequencesToAdd = 
 				Neo4jDatabaseSingleton.getQueryHelper().getSequencesWithinTresholds(center, this.tightTreshold, this.looseTreshold, getDistanceProperties().name());
+		
+		filterSequencesToAddForCandidates(sequencesToAdd);
+		
 		sequencesOfCluster.addAll(sequencesToAdd.getOrDefault(true, Collections.emptyList()));
 		sequencesOfCluster.addAll(sequencesToAdd.getOrDefault(false, Collections.emptyList()));
 		
@@ -67,6 +70,11 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		
 		addCluster(new Cluster<>(new CanopyClustering(getDistanceProperties()), new ArrayList<>(sequencesOfCluster), center));
 		return true;
+	}
+
+	private void filterSequencesToAddForCandidates(Map<Boolean, List<String>> sequencesToAdd) {
+		sequencesToAdd.get(true).removeIf(s -> !this.candidates.contains(s));		
+		sequencesToAdd.get(false).removeIf(s -> !this.candidates.contains(s));		
 	}
 
 	@Override

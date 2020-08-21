@@ -38,7 +38,7 @@ public class FilterCommand implements Runnable {
 		List<RNASequence> sequences = CommandUtil.getSequences(-1, inputFastaFile);
 		
 		this.status = new ProgressBarHelper();
-		this.status.nextBar(sequences.size(), "Filtering Sequences");
+		this.status.nextBlock(sequences.size(), "Filtering Sequences");
 		
 		List<RNASequence> filteredSequences = sequences.parallelStream()
 			.filter(s -> NumberOfIntronsFilter.hasAtLeastOneIntron(s.getDescription()))

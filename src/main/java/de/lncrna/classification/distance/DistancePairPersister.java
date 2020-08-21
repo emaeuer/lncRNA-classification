@@ -34,7 +34,7 @@ public class DistancePairPersister implements Subscriber<DistancePair> {
 
 	@Override
 	public void onComplete() {
-		System.out.println("closed flow");		
+		// TODO
 	}
 
 }

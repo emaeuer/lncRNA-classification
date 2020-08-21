@@ -63,10 +63,12 @@ public class ProgressBarHelper {
 	}
 
 	public synchronized void next() {
-		this.bar.step();
+		if (this.bar != null) {
+			this.bar.step();
+		}
 	}
 
-	public void nextBar(long numberOfCalculations, String taskName) {
+	public void nextBlock(long numberOfCalculations, String taskName) {
 		if (this.bar != null) {
 			stop();
 		}
