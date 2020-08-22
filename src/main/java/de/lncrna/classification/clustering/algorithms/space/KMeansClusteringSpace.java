@@ -28,9 +28,10 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
                 LOG.log(Level.INFO, "Starting K_Means clustering");
                 LOG.log(Level.INFO, "Initializing clusters");
 
-                // TODO remove magic number
-                this.currClusterCentroids = new ArrayList<>(
-                                Neo4jDatabaseSingleton.getQueryHelper().getRandomSequenceNames(60,
+                this.currClusterCentroids = new ArrayList<>(Neo4jDatabaseSingleton.getQueryHelper()
+                                .getRandomSequenceNames(PropertyHandler.HANDLER.getPropertyValue(
+                                                PropertyKeys.MIN_AMOUNT_SEQUENCES_IN_CLUSTER,
+                                                Integer.class),
                                                 PropertyHandler.HANDLER.getPropertyValue(
                                                                 PropertyKeys.CLUSTER_COUNT,
                                                                 Integer.class)));
@@ -42,7 +43,6 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
 
         @Override
         public boolean nextIteration() {
-                // average clustering distnace als abbruchkriterium
                 if (this.prevClusterCentroids.containsAll(this.currClusterCentroids)
                                 || isMaxIteration()) {
                         this.clusterAssignments.entrySet().stream().forEach(entry -> {
@@ -67,7 +67,7 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
                         LOG.log(Level.INFO, String.format("KMeans clustering: Iteration %d",
                                         getIterationCounter()));
                 }
-                
+
                 this.clusterAssignments = Neo4jDatabaseSingleton.getQueryHelper()
                                 .getSequencesWithinCluster(this.currClusterCentroids,
                                                 this.getDistanceProperties().name());

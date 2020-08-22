@@ -37,7 +37,7 @@ public class KMeansClustering implements ClusteringAlgorithm {
 
 	@Override
 	public Collection<String> getSequences() {
-		throw new NotImplementedException();
+		return this.sequences;
 	}
 
 	@Override
