@@ -5,6 +5,7 @@ public enum DistanceType {
 	Edit_Distance,
 	Needleman_Wunsch_Distance,
 	N_Gram_Distance,
-	Blast_Distance;
+	Blast_Distance,
+	Property_Distance;
 
 }

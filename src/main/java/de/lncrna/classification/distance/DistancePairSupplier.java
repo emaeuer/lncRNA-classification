@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.collections4.SetUtils;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import de.lncrna.classification.cli.ProgressBarHelper;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
@@ -33,7 +35,7 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 	
 	private ExecutorService subscriberThreadPool;
 	
-	private ExecutorService publishThreadPool = Executors.newSingleThreadExecutor();
+	private ExecutorService publishThreadPool = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("publish-thread-%d").build());
 	
 	private final List<DistancePairSubscription> subscriptions = new ArrayList<>();
 	
@@ -51,7 +53,7 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		int threadNumber = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_THREAD_COUNT, Integer.class);
 		
 		this.sequences = sequences;
-		this.subscriberThreadPool = Executors.newFixedThreadPool(threadNumber);
+		this.subscriberThreadPool = Executors.newFixedThreadPool(threadNumber, new ThreadFactoryBuilder().setNameFormat("subscription-thread-%d").build());
 		
 		this.status = new ProgressBarHelper();
 		
@@ -59,6 +61,7 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 	}
 	
 	public void addCompareBlock(List<String> sequenceBlock) {
+		int sleepTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
 		DistancePair firstPair = null;
 				
 		for (int i = 0; i < sequenceBlock.size(); i++) {
@@ -81,7 +84,18 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 				
 				this.availableValues.add(currentPair);
 			}
+			
+			if (this.availableValues.size() > 1000000) {
+				while (this.availableValues.size() > 500000) {
+					try {
+						Thread.sleep(sleepTime);
+					} catch (InterruptedException e) {
+						continue;
+					}
+				}
+			}
 		}
+		
 		
 		updateMadeComparisons(sequenceBlock);
 	}
@@ -98,13 +112,16 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		return !SetUtils.intersection(blocks1, blocks2).isEmpty();
 	}
 	
-	private void publishItems() {
-		int sleepTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
-		
+	private void publishItems() {		
 		// stopped in close
 		while (true) {
 			if (this.subscriptions.isEmpty()) {
+				System.out.println("empty");
 				continue;
+			}
+			
+			if (Thread.interrupted()) {
+				break;
 			}
 			
 			DistancePairSubscription subscription = this.subscriptions.get(this.lastPublishedSubscription.get());
@@ -116,12 +133,6 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 			
 			if (this.lastPublishedSubscription.get() >= this.subscriptions.size()) {
 				this.lastPublishedSubscription.set(0);
-				try {
-					Thread.sleep(sleepTime);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-					break;
-				}
 			}
 		}
 	}
@@ -132,7 +143,6 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		for (int i = 0; i < remainingCapacity && !this.availableValues.isEmpty(); i++) {
 			availableValues.add(this.availableValues.poll());
 		}
-		
 		return availableValues;
 	}
 
@@ -179,6 +189,7 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 		}
 		
 		this.publishThreadPool.shutdownNow();
+		this.subscriberThreadPool.shutdownNow();
 		
 		for (DistancePairSubscription subscribtion : subscriptions) {
 			subscribtion.cancel();
