@@ -27,6 +27,8 @@ public class DistanceCalculationInitializer {
 		} else {
 			calculateAll(sequences, distanceType);
 		}
+		terminateFlow();
+		LOG.log(Level.INFO, "Finished processing sequence pairs, awaiting termination of persisting threads");
 	}
 
 	private void initFlow(DistanceType distanceType) {
@@ -44,14 +46,12 @@ public class DistanceCalculationInitializer {
 		LOG.log(Level.INFO, String.format("Found %s clusters for blocking", clusters.size()));
 		this.supplier.setBlockNumber(clusters.size());
 		clusters.forEach((id, block) -> calculateBlock(id, block));
-		terminateFlow();
 	}
 	
 
 
 	private void calculateAll(Map<String, String> sequences, DistanceType distanceType) {		
 		this.supplier.addCompareBlock(initAllNodes(sequences));
-		terminateFlow();
 	}
 	
 	private void terminateFlow() {

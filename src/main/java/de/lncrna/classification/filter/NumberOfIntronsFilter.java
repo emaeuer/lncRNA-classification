@@ -1,25 +1,16 @@
 package de.lncrna.classification.filter;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.lncrna.classification.util.PropertyHandler;
-import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
+import de.lncrna.classification.util.lncipedia.api.LncipediaAPIHelper;
 
 public class NumberOfIntronsFilter {
 
-	private static final String URL_GET_PATTERN = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.INTRON_API_URL_PATTERN, String.class);
-	
 	private NumberOfIntronsFilter() {}
 	
 	public static boolean hasAtLeastOneIntron(String seqID) {
-		JSONObject receivedJson = new JSONObject(getJson(seqID));
+		JSONObject receivedJson = LncipediaAPIHelper.getJson(seqID);
 		JSONArray exonArray = receivedJson.getJSONArray("exons");
 		
 		long start = receivedJson.getLong("start");
@@ -43,23 +34,5 @@ public class NumberOfIntronsFilter {
 		}
 	}
 	
-	private static String getJson(String seqID) {
-		try {
-			URL url = new URL(String.format(URL_GET_PATTERN, seqID));
-			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
-			
-			StringBuffer content = new StringBuffer();
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-				String inputLine;
-				while ((inputLine = in.readLine()) != null) {
-				    content.append(inputLine);
-				}
-			}
-			return content.toString();
-		} catch (IOException e) {
-			throw new FailedToReceiveIntronException("Faile to receive information for sequence (" + seqID + ")", e);
-		}
-	}
-	
 }
+

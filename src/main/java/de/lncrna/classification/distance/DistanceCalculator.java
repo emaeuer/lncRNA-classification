@@ -1,13 +1,20 @@
 package de.lncrna.classification.distance;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.Flow.Processor;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.SubmissionPublisher;
+import java.util.logging.Logger;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public abstract class DistanceCalculator implements Processor<DistancePair, DistancePair> {
 
-	private final SubmissionPublisher<DistancePair> publisher = new SubmissionPublisher<>();
+	protected static final Logger LOG = Logger.getLogger("logger");
+	
+	private final SubmissionPublisher<DistancePair> publisher 
+		= new SubmissionPublisher<DistancePair>(Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("persist-thread-%d").build()), 100000);
 	private Subscription subscription;
 	
 	public abstract float getDistance(DistancePair pair);

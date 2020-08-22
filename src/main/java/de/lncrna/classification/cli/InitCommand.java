@@ -1,6 +1,7 @@
 package de.lncrna.classification.cli;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -10,6 +11,7 @@ import org.biojava.nbio.core.sequence.RNASequence;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.distance.DistanceCalculationInitializer;
 import de.lncrna.classification.distance.DistanceType;
+import de.lncrna.classification.distance.calculation.PropertyDistance;
 import de.lncrna.classification.util.PropertyHandler;
 import de.lncrna.classification.util.PropertyKeyHelper;
 import de.lncrna.classification.util.PropertyKeyHelper.PropertyKeys;
@@ -110,6 +112,10 @@ public class InitCommand implements Runnable {
 		
 		Map<String, String> seqs = sequences.stream()
 				.collect(Collectors.toMap(seq -> seq.getDescription(), seq -> seq.getSequenceAsString()));
+		
+		if (distanceProp == DistanceType.Property_Distance) {
+			PropertyDistance.initPropertiesOfSequences(new ArrayList<>(seqs.keySet()));
+		}
 		
 		new DistanceCalculationInitializer(seqs, distanceProp, blocking);
 	}
