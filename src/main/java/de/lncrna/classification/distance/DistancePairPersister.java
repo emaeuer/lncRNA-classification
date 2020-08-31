@@ -22,7 +22,7 @@ public class DistancePairPersister implements Subscriber<DistancePair> {
 	
 	private Subscription subscription;
 	
-	private ExecutorService executor = Executors.newFixedThreadPool(5, new ThreadFactoryBuilder().setNameFormat("persist-helper-thread-%d").build());
+	private ExecutorService executor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("persist-helper-thread-%d").build());
 	
 	private final Queue<Future<?>> runningTasks = new LinkedList<>();
 	

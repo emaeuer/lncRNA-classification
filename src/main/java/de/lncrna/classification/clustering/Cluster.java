@@ -3,6 +3,9 @@ package de.lncrna.classification.clustering;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
@@ -17,19 +20,27 @@ import de.lncrna.classification.db.Neo4jDatabaseSingleton;
  */
 public class Cluster<T extends ClusteringAlgorithm> {
 
+	private static final AtomicInteger NEXT_CLUSTER_ID = new AtomicInteger(0);
+	
 	private final T algorithm;
 	
 	private String clustroid = null;
 	
 	public double averageDistanceWithin = -1;
+	private double diameter = -1;
+	
+	public final int clusterId;
+
 	
 	public Cluster(final T algorithm, List<String> sequences, String clustroid) {
+		this.clusterId = NEXT_CLUSTER_ID.getAndIncrement();
 		this.algorithm = algorithm;
 		this.algorithm.initCluster(sequences);
 		this.clustroid = clustroid;
 	}
 	
 	public Cluster(final T algorithm, List<String> sequences) {
+		this.clusterId = NEXT_CLUSTER_ID.getAndIncrement();
 		this.algorithm = algorithm;
 		this.algorithm.initCluster(sequences);
 	}
@@ -72,6 +83,7 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	private void markChanged() {
 		this.averageDistanceWithin = -1;
 		this.clustroid = null;
+		this.diameter = -1;
 	}
 	
 	public String getClustroid() {
@@ -88,6 +100,36 @@ public class Cluster<T extends ClusteringAlgorithm> {
 			this.averageDistanceWithin = Neo4jDatabaseSingleton.getQueryHelper().getAverageClusterDistance(getSequences(), this.algorithm.getDistanceAlgortithm().name());
 		} 
 		return this.averageDistanceWithin;
+	}
+	
+	public double getDiameter() {
+		if (getSequences().size() == 1) {
+			return 0;
+		}
+		
+		if (this.diameter == -1) {
+			this.diameter = Neo4jDatabaseSingleton.getQueryHelper().getMaxDistanceWithinCluster(getSequences(), this.algorithm.getDistanceAlgortithm().name());
+		} 
+		return this.diameter;
+	}
+	
+	public Map<String, Double> calculateSilhouettes() {
+		return getSequences()
+			.parallelStream()
+			.collect(Collectors.toMap(s -> s, s -> calculateSilhoutteForSequence(s)));
+	}
+	
+	private double calculateSilhoutteForSequence(String sequence) {
+		double averageDistanceWithinCluster = Neo4jDatabaseSingleton.getQueryHelper().getAverageDistanceOfSequenceInCluster(sequence, getSequences(), this.algorithm.getDistanceAlgortithm().name());
+		double distanceToNextCluster = Neo4jDatabaseSingleton.getQueryHelper().getAverageDistanceToNearestCluster(sequence, this.algorithm.getDistanceAlgortithm().name(), this.algorithm.getName());
+		
+		double result = (distanceToNextCluster - averageDistanceWithinCluster) / Math.max(averageDistanceWithinCluster, distanceToNextCluster);
+		
+		return result;
+	}
+	
+	public int getClusterId() {
+		return this.clusterId;
 	}
 	
 	@Override

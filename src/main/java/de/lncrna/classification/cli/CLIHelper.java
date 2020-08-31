@@ -26,7 +26,7 @@ public class CLIHelper {
 	public static boolean refreshIfNecessary(PropertyKeys key, Object value) {
 		if (value != null) {
 			Object old = PropertyHandler.HANDLER.getPropertyValue(key, value.getClass());
-			if (old != null && !old.equals(value)) {
+			if (old == null || (old != null && !old.equals(value))) {
 				PropertyHandler.HANDLER.setPropertieValue(key, value);
 				return true;
 			}

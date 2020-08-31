@@ -22,7 +22,7 @@ public class DistancePairSubscription implements Subscription {
 	
 	private final BlockingQueue<DistancePair> values = new LinkedBlockingQueue<>(20000);
 	
-	private ExecutorService executor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("subscription-helper-thread-%d").build());
+	private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("subscription-helper-thread-%d").build());
 	
 	public DistancePairSubscription(DistancePairSupplier distancePairSupplier, Subscriber<? super DistancePair> subscriber) {
 		this.subscriber = subscriber;
@@ -32,11 +32,11 @@ public class DistancePairSubscription implements Subscription {
 	@Override
 	public void request(long n) {	
 		try {
-			DistancePair next = this.values.poll(1, TimeUnit.SECONDS);
+			DistancePair next = this.values.poll(10, TimeUnit.SECONDS);
 			this.publisher.nextSequence(next);
 			executor.execute(() -> this.subscriber.onNext(next));
 		} catch (InterruptedException e) {
-			this.subscriber.onError(e);
+			// do nothing because exception was caused by closing the flow
 		}
 		
 	}

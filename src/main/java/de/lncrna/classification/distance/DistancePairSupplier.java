@@ -113,10 +113,16 @@ public class DistancePairSupplier implements Publisher<DistancePair>, AutoClosea
 	}
 	
 	private void publishItems() {		
+		int sleepTime = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.DISTANCE_CALCULATION_WAITING_TIME, Integer.class);
+		
 		// stopped in close
 		while (true) {
-			if (this.subscriptions.isEmpty()) {
-				System.out.println("empty");
+			if (this.subscriptions.isEmpty() || this.availableValues.size() == 0) {
+				try {
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException e) {
+					break;
+				}
 				continue;
 			}
 			

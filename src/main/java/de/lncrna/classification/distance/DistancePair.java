@@ -21,6 +21,17 @@ public class DistancePair {
 		}
 	}
 	
+	public DistancePair(String sequenceName1, String sequenceName2, float distance) {
+		if (sequenceName1.compareTo(sequenceName2) == -1) {
+			this.sequence1 = new SimpleEntry<>(sequenceName1, null);
+			this.sequence2 = new SimpleEntry<>(sequenceName2, null);
+		} else {
+			this.sequence2 = new SimpleEntry<>(sequenceName1, null);
+			this.sequence1 = new SimpleEntry<>(sequenceName2, null);
+		}
+		this.distance = distance;
+	}
+	
 	public String getSequenceName1() {
 		return sequence1.getKey();
 	}

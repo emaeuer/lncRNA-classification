@@ -1,5 +1,6 @@
 package de.lncrna.classification.cli;
 
+import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +38,6 @@ public class ClusterCommand implements Runnable {
 	}
 	
 	private static class HierarchicalClusteringParameters {
-		
 		
 		@Option(names = {"-n", "--clusterCount"}, defaultValue = "1", description = "Hierarchical clustering stops when this number is reached.") 
 		private int maxClusterCount;
@@ -85,15 +85,19 @@ public class ClusterCommand implements Runnable {
 	@Option(names = {"-s", "--statRefreshInterval"}, defaultValue = "-1", description = "Number of iterations between refreshs of the cluster statistics") 
 	private int statRefreshInterval;
 	
+	@Option(names = {"-sl", "--statisticsLogFile"}, description = "Destination file for statistic log") 
+	private File statisticsLogFile;
+	
 	@Override
 	public void run() {		
+		PropertyKeyHelper.setGlobalPrefix(distanceProp.name());
+		
 		refreshAlgorithmSpecificParameters();
 		
 		CLIHelper.refreshIfNecessary(PropertyKeys.STAT_REFRESH_INTERVAL, statRefreshInterval);
+		CLIHelper.refreshIfNecessary(PropertyKeys.STAT_LOG_FILE, statisticsLogFile);
 		
 		Neo4jDatabaseSingleton.initInstance(embeddedMode);
-		
-		PropertyKeyHelper.setGlobalPrefix(distanceProp.name());
 		
 		AbstractClusteringSpace<?> space = ClusterSpaceFactory.createClusterSpace(algorithm.getImplementationType(), distanceProp);
 		
@@ -114,13 +118,13 @@ public class ClusterCommand implements Runnable {
 		}
 		
 		if (parameters != null && parameters.kmeans != null) {
-			CLIHelper.refreshIfNecessary(PropertyKeys.AVERAGE_CLUSTER_DISTANCE_THRESHOLD, parameters.kmeans.maxAverageClusterDistance);
-			CLIHelper.refreshIfNecessary(PropertyKeys.CLUSTER_COUNT, parameters.kmeans.clusterCount);
+			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD, parameters.kmeans.maxAverageClusterDistance);
+			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_CLUSTER_COUNT, parameters.kmeans.clusterCount);
 		}
 		
 		if (parameters != null && parameters.hierarchical != null) {
-			CLIHelper.refreshIfNecessary(PropertyKeys.AVERAGE_CLUSTER_DISTANCE_THRESHOLD, parameters.hierarchical.maxAverageClusterDistance);
-			CLIHelper.refreshIfNecessary(PropertyKeys.CLUSTER_COUNT, parameters.hierarchical.maxClusterCount);
+			CLIHelper.refreshIfNecessary(PropertyKeys.HIERARCHICAL_AVERAGE_CLUSTER_DISTANCE_THRESHOLD, parameters.hierarchical.maxAverageClusterDistance);
+			CLIHelper.refreshIfNecessary(PropertyKeys.HIERARCHICAL_CLUSTER_COUNT, parameters.hierarchical.maxClusterCount);
 		}
 	}
 

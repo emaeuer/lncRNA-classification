@@ -13,7 +13,6 @@ import org.neo4j.driver.Values;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.distance.DistancePair;
-import de.lncrna.classification.util.data.DistanceDAO;
 
 public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandler, Result> {
 
@@ -38,24 +37,16 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 	}
 	
 	@Override
-	public void addDistance(DistanceDAO dao) {
-		this.handler.commitQuery(
-				String.format(
-						Neo4jQueryHelper.INSERT_DISTANCE, 
-						dao.getSeq1(), dao.getSeq2(), dao.getDistanceName(), dao.getDistanceValue()));
-	}
-	
-	@Override
-	public DistanceDAO getDistances(DistanceDAO dao) {
+	public DistancePair getDistances(DistancePair dao) {
 		return this.handler.executeQuery(
 				String.format(
 						Neo4jQueryHelper.GET_DISTANCE,
-						dao.getSeq1(), dao.getSeq2(), dao.getDistanceName()), 
+						dao.getSequenceName1(), dao.getSequenceName2(), dao.getDistanceType().name()), 
 				r -> {
 					if (r.hasNext()) {
-						dao.setDistanceValue(Double.valueOf(r.next().get("distance").asDouble()).floatValue());
+						dao.setDistance(Double.valueOf(r.next().get("distance").asDouble()).floatValue());
 					} else {
-						dao.setDistanceValue(-1f);;
+						dao.setDistance(-1f);;
 					}
 					return dao;
 				});
@@ -76,15 +67,15 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 	}
 	
 	@Override
-	public LinkedList<DistanceDAO> getDistancesOrdered(String distanceName, int limit) {
+	public LinkedList<DistancePair> getDistancesOrdered(String distanceName, int limit, int offset) {
 		return this.handler.executeQuery(
 				String.format(
 						Neo4jQueryHelper.GET_ORDERED_DISTANCES,
-						distanceName, limit), 
+						distanceName, offset * limit, limit), 
 				r -> {
 					return r.stream()
-						.map(m -> new DistanceDAO(m.get("seq1").asString(), m.get("seq2").asString(), distanceName, Double.valueOf(m.get("distance").asDouble()).floatValue())) 
-						.collect(Collectors.toCollection(LinkedList::new));
+							.map(m -> new DistancePair(m.get("seq1").asString(), m.get("seq2").asString(), Double.valueOf(m.get("distance").asDouble()).floatValue())) 
+							.collect(Collectors.toCollection(LinkedList::new));
 				});
 	}
 	
@@ -109,7 +100,7 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 		} else {
 			return this.handler.executeQuery(
 					String.format(
-							Neo4jQueryHelper.GET_AVERAGE_DISTANCE_CLUSTER,
+							Neo4jQueryHelper.GET_AVERAGE_DISTANCE_WITHIN_CLUSTER,
 							toCollectionString(sequences), distanceName, 1), 
 					r -> {
 						return r.stream()
@@ -208,6 +199,48 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 	@Override
 	public void setClusterPersisted(long id) {
 		this.handler.commitQuery(String.format(Neo4jQueryHelper.SET_CLUSTER_PERSISTED, id));
+	}
+
+	@Override
+	public double getAverageDistanceOfSequenceInCluster(String sequence, Collection<String> sequences, String distanceName) {
+		return this.handler.executeQuery(
+				String.format(
+						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_OF_SEQUENCE_WITHIN_CLUSTER,
+						toCollectionString(sequences), sequence, distanceName), 
+				r -> {
+					return r.stream()
+							.map(m -> m.get("avgDistance").asDouble())
+							.findFirst()
+							.orElse(0.0);
+				});
+	}
+
+	@Override
+	public double getAverageDistanceToClusterOfNearestClustroid(String sequence, String distanceName, String clusteringName) {
+		return this.handler.executeQuery(
+				String.format(
+						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID,
+						sequence, distanceName, clusteringName, 1), 
+				r -> {
+					return r.stream()
+							.map(m -> m.get("avgDistance").asDouble())
+							.findFirst()
+							.orElse(1.0);
+				});
+	}
+
+	@Override
+	public double getAverageDistanceToNearestCluster(String sequence, String distanceName, String clusteringName) {
+		return this.handler.executeQuery(
+				String.format(
+						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID,
+						sequence, distanceName, clusteringName, 1), 
+				r -> {
+					return r.stream()
+							.map(m -> m.get("avgDistance").asDouble())
+							.findFirst()
+							.orElse(1.0);
+				});
 	}
 	
 }

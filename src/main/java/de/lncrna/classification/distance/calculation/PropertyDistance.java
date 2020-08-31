@@ -76,6 +76,11 @@ public class PropertyDistance extends DistanceCalculator {
 			.parallelStream()
 			.forEach(SequenceProperties::normalize);
 		LOG.log(Level.INFO, "Finished requesting sequence properties from lncipedia api");
+		
+		System.out.println("SeqLength: " + SequenceProperties.maxSequenceLength);
+		System.out.println("GenomeLength: " + SequenceProperties.maxGenomeLength);
+		System.out.println("nrOfIntrons: " + SequenceProperties.maxNrOfIntrons);
+		System.out.println("nrOfExons: " + SequenceProperties.maxNrOfExons);
 	}
 	
 	private static SequenceProperties initPropertiesOfSequence(String sequence) {
@@ -123,7 +128,7 @@ public class PropertyDistance extends DistanceCalculator {
 		
 		float distance = Double.valueOf(SequenceProperties.calculateDistance(seqProp1, seqProp2)).floatValue();
 		
-		return distance < 0.001 ? distance : -1f;
+		return distance < 0.05 ? distance : -1f;
 	}
 
 	@Override

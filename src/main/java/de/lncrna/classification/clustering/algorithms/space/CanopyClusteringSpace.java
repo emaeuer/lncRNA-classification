@@ -23,8 +23,8 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 	private final float looseTreshold;
 	private final float tightTreshold;
 	
-	public CanopyClusteringSpace(DistanceType distanceProp, float looseTreshold, float tightTreshold) {
-		super(distanceProp);
+	public CanopyClusteringSpace(DistanceType distanceProp, float looseTreshold, float tightTreshold, boolean initFromDB) {
+		super(distanceProp, initFromDB);
 		this.looseTreshold = looseTreshold;
 		this.tightTreshold = tightTreshold;
 	}
@@ -37,6 +37,17 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		this.candidates = new ArrayList<>(Neo4jDatabaseSingleton.getQueryHelper().getAllSequenceNames());
 		
 		LOG.log(Level.INFO, "Finished initializing clustering space");
+	}
+	
+	@Override
+	protected void initFromDB() {
+		Map<Long, List<String>> clusters = Neo4jDatabaseSingleton.getQueryHelper().getClusters(getAlgorithm().getDistanceAlgortithm().name(), getAlgorithm().getName());
+		
+		clusters.entrySet()
+			.stream()
+			.map(c -> new Cluster<CanopyClustering>(getAlgorithm(), c.getValue()))
+			.forEach(this::addCluster);;
+		
 	}
 
 	@Override
@@ -68,6 +79,10 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 		
 		candidates.removeAll(sequencesToAdd.getOrDefault(true, Collections.emptyList()));
 		
+		if (center == null) {
+			System.out.println("hier");
+		}
+		
 		addCluster(new Cluster<>(new CanopyClustering(getDistanceProperties()), new ArrayList<>(sequencesOfCluster), center));
 		return true;
 	}
@@ -78,29 +93,21 @@ public class CanopyClusteringSpace extends AbstractClusteringSpace<CanopyCluster
 	}
 
 	@Override
-	public void addCluster(Cluster<CanopyClustering> newCluster) {
-		Cluster<CanopyClustering> existingCluster = null;
-		boolean containsAll = false;
-		
+	public void addCluster(Cluster<CanopyClustering> newCluster) {		
 		for (Cluster<CanopyClustering> cluster : getClusters()) {
 			if (cluster.getClusterSize() > newCluster.getClusterSize()) {
-				containsAll = cluster.getSequences().containsAll(newCluster.getSequences());
+				if (cluster.getSequences().containsAll(newCluster.getSequences())) {
+					return; // cluster with all those sequences already exists
+				}
 			} else {
-				containsAll = newCluster.getSequences().containsAll(cluster.getSequences());
+				if (newCluster.getSequences().containsAll(cluster.getSequences())) {
+					getClusters().remove(cluster); // new cluster contains all elements of the current one
+					break;
+				}
 			}
-			
-			if (containsAll) {
-				existingCluster = cluster;
-				break;
-			}
-		}
-		
-		if (existingCluster != null) {
-			existingCluster.mergeWithOther(newCluster);
 		}
 		
 		super.addCluster(newCluster);
-		
 	}
 
 }

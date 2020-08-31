@@ -32,10 +32,9 @@ public class CommandUtil {
 
 		if (sequenceNumber != -1) {
 			List<RNASequence> randomSequences = new ArrayList<>();
-			Random rand = new Random();
+			Random rand = new Random(49583498340l);
 			for (int i = 0; i < sequenceNumber; i++) {
-//				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
-				randomSequences.add(sequences.remove(i));
+				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
 			}
 			sequences = randomSequences;
 		}
