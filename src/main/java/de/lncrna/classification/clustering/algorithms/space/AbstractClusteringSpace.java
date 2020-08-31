@@ -3,12 +3,20 @@ package de.lncrna.classification.clustering.algorithms.space;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.distance.DistanceType;
+import de.lncrna.classification.util.stat.StatLogger;
 
 public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
@@ -22,10 +30,20 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	
 	private int iterationCounter = 0;
 	
-	public AbstractClusteringSpace(DistanceType distanceProp) {
+	private final StatLogger statLogger;
+	
+	public AbstractClusteringSpace(DistanceType distanceProp, boolean initFromDB) {
 		this.distanceProp = distanceProp;
-		initSpace();
+		this.statLogger = new StatLogger();
+		
+		if (initFromDB) {
+			initFromDB();
+		} else {
+			initSpace();
+		}
 	}
+	
+	protected abstract void initFromDB();
 
 	protected abstract void initSpace();
 	
@@ -47,16 +65,33 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 		return this.distanceProp;
 	}
 
-	public void setAlgorithm(T algorithm) {
-		this.algorithm = algorithm;
+	public double calculateAverageDistanceWithinCluster() {
+		return parallelAverageCalculation(Cluster::getAverageDistanceWithin);
+	}
+	
+	public double calculateAverageClusterDiameter() {
+		return parallelAverageCalculation(Cluster::getDiameter);
 	}
 
-	public double calculateAverageClusterDistance() {
-		return this.clusters.parallelStream()
-			.mapToDouble(Cluster::getAverageDistanceWithin)
-			.average()
-			.orElse(-1);
-	}	
+	private double parallelAverageCalculation(Function<Cluster<?>, Double> task) {
+		ExecutorService service = Executors.newWorkStealingPool();
+		
+		List<Future<Double>> tasks = this.clusters.stream()
+			.map(c -> service.submit(() -> task.apply(c)))
+			.collect(Collectors.toList());
+		
+		return tasks.stream()
+				.mapToDouble(value -> {
+					try {
+						return value.get();
+					} catch (InterruptedException | ExecutionException e1) {
+						e1.printStackTrace();
+						return 1;
+					}
+				})
+				.average()
+				.orElse(-1);
+	}
 	
 	public void persistClusterInformation() {
 		Neo4jDatabaseSingleton.getQueryHelper().updateClusterInformation(this.clusters);
@@ -74,6 +109,15 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 
 	protected void incrementIterationCounter() {
 		this.iterationCounter++;
+	}
+	
+	protected StatLogger getStatLogger() {
+		return this.statLogger;
+	}
+	
+	public Map<Integer, Map<String, Double>> calculateSilhouettes() {
+		return getClusters().parallelStream()
+			.collect(Collectors.toMap(Cluster::getClusterId, Cluster::calculateSilhouettes));
 	}
 	
 }

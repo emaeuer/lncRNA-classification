@@ -24,8 +24,8 @@ import picocli.CommandLine.Option;
 	synopsisHeading = "%n",
 	descriptionHeading = "%n@|bold,underline Description|@:%n%n",
 	optionListHeading = "%n@|bold,underline Options|@:%n",
-	header = "Initialize distance matrix for clustering",
-	description = "Calculates all pairwise sequence distances and stores them in a distance matrix",
+	header = "Calculate all pairwise distances",
+	description = "Calculates all pairwise sequence distances and stores them in the neo4j database",
 	separator = " ")
 public class InitCommand implements Runnable {
 	

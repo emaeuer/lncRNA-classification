@@ -64,6 +64,9 @@ public class PropertyHandler {
 			}
 			return valueType.cast(Double.valueOf(value));
 		} else if (File.class == valueType) {
+			if (value == null) {
+				return null;
+			}	
 			return valueType.cast(new File(value));
 		} else {
 			throw new IllegalArgumentException(String.format("Can't convert object with value %s to %s", value, valueType.getName()));

@@ -7,7 +7,6 @@ import java.util.Map;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.distance.DistancePair;
-import de.lncrna.classification.util.data.DistanceDAO;
 
 public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 
@@ -50,7 +49,7 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"MATCH (seq1:Sequence) -[r:distance]-> (seq2:Sequence) " + 
 			"RETURN seq1.seqName AS seq1, r.%s AS distance, seq2.seqName AS seq2 " + 
 			"ORDER BY distance ASCENDING " + 
-			"LIMIT %d";
+			"Skip %d LIMIT %d";
 	
 	public static final String GET_CLUSTROID = 
 			"MATCH (seq:Sequence) " +
@@ -66,7 +65,7 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"ORDER BY avgDistances.avgDistance " +
 			"LIMIT 1";
 	
-	public static final String GET_AVERAGE_DISTANCE_CLUSTER = 
+	public static final String GET_AVERAGE_DISTANCE_WITHIN_CLUSTER = 
 			"MATCH (seq:Sequence) " +
 			"WHERE seq.seqName IN %s " +
 			"WITH collect(seq) AS cluster " +
@@ -118,10 +117,47 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq1 " +
 			"UNWIND cluster AS seq2 " +
-			"MATCH (seq1)-[r:distance]-(seq2) " +
+			"MATCH (seq1:Sequence)-[r:distance]-(seq2:Sequence) " +
 			"RETURN max(r.%s) AS maxDistance";
 	
+	public static final String GET_AVERAGE_DISTANCE_OF_SEQUENCE_WITHIN_CLUSTER =
+			"MATCH (seq:Sequence) " +
+			"WHERE seq.seqName IN %1$s AND seq.seqName <> \"%2$s\" " +
+			"WITH collect(seq) AS cluster " +
+			"UNWIND cluster AS seq " +
+			"OPTIONAL MATCH (s:Sequence {seqName:\"%2$s\"})-[r:distance]-(seq:Sequence) " +
+			"RETURN avg(coalesce(r.%3$s, 1)) AS avgDistance";
 	
+	
+	
+	public static final String GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID =
+			"MATCH (seq:Sequence {seqName:\"%1$s\"}) " +
+			"WITH seq " +
+			"MATCH (clustroid:Sequence)-[:clustroid_of]-(:Cluster {algorithm:\"%3$s\"}) " + 
+			"MATCH (seq)-[:in_cluster]-(:Cluster {algorithm:\"%3$s\"})-[:clustroid_of]-(clustroidOfSeq:Sequence) " +
+			"WHERE clustroid <> clustroidOfSeq " +
+			"WITH seq, clustroid " +
+			"MATCH (seq:Sequence)-[d:distance]-(clustroid:Sequence) " +  
+			"WITH seq, d, clustroid " + 
+			"ORDER BY d.%2$s " + 
+			"LIMIT 1 " + 
+			"MATCH (cSeq:Sequence)-[:in_cluster]-(:Cluster {algorithm:\"%3$s\"})-[:clustroid_of]-(clustroid:Sequence) " +
+			"OPTIONAL MATCH (seq:Sequence)-[d:distance]-(cSeq:Sequence) " + 
+			"RETURN avg(coalesce(d.%2$s, %4$d)) AS avgDistance";
+	
+	public static final String GET_AVERAGE_DISTANCE_TO_NEAREST_CLUSTER =
+			"MATCH (seq:Sequence {seqName:\"%1$s\"})-[:in_cluster]-(c:Cluster {algorithm:\"%3$s\"}) " + 
+			"WITH seq, c " + 
+			"MATCH (seq:Sequence)-[d:distance]-(seq2:Sequence)-[:in_cluster]-(c2:Cluster {algorithm:\"%3$s\"}) " + 
+			"WHERE NOT (seq2:Sequence)-[:in_cluster]-(c:Cluster) " + 
+			"WITH c2, min(d.%2$s) AS minDistance, seq " + 
+			"ORDER BY minDistance " + 
+			"LIMIT 1 " + 
+			"MATCH (cSeq:Sequence)-[:in_cluster]-(c2:Cluster) " + 
+			"OPTIONAL MATCH (seq:Sequence)-[d:distance]-(cSeq:Sequence) " +  
+			"RETURN avg(coalesce(d.%2$s, %4$d)) AS avgDistance";
+	
+			
 	
 	public List<String> getAllSequenceNames();
 
@@ -131,13 +167,11 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 
 	public void insertAllSequences(List<String> nodes);
 	
-	public void addDistance(DistanceDAO dao);
-	
-	public DistanceDAO getDistances(DistanceDAO dao);
+	public DistancePair getDistances(DistancePair dao);
 	
 	public double calculateAverageDistanceOfSequence(String sequence, String distanceName);
 	
-	public LinkedList<DistanceDAO> getDistancesOrdered(String distanceName, int limit);
+	public LinkedList<DistancePair> getDistancesOrdered(String distanceName, int limit, int offset);
 	
 	public String findClustroid(Collection<String> sequences, String distanceName);
 	
@@ -154,5 +188,11 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 	public void setClusterPersisted(long id);
 	
 	public void addDistance(DistancePair item);
+
+	public double getAverageDistanceOfSequenceInCluster(String sequence, Collection<String> sequences, String distanceName);
+
+	public double getAverageDistanceToClusterOfNearestClustroid(String sequence, String distanceName, String clusteringName);
+
+	public double getAverageDistanceToNearestCluster(String sequence, String distanceName, String clusteringName);
 
 }

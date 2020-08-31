@@ -42,7 +42,7 @@ public class DistanceCalculationInitializer {
 	}
 	
 	private void findAndCalculateBlocks() {		
-		Map<Long, List<String>> clusters = Neo4jDatabaseSingleton.getQueryHelper().getClusters(DistanceType.Blast_Distance.name(), ImplementedClusteringAlgorithms.Canopy.name());
+		Map<Long, List<String>> clusters = Neo4jDatabaseSingleton.getQueryHelper().getClusters(DistanceType.Property_Distance.name(), ImplementedClusteringAlgorithms.Canopy.name());
 		LOG.log(Level.INFO, String.format("Found %s clusters for blocking", clusters.size()));
 		this.supplier.setBlockNumber(clusters.size());
 		clusters.forEach((id, block) -> calculateBlock(id, block));

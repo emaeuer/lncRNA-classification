@@ -12,6 +12,7 @@ public class PropertyKeyHelper {
 		NEXT_RECORD(true),
 		INTRON_API_URL_PATTERN(false),
 		STAT_REFRESH_INTERVAL(false),
+		STAT_LOG_FILE(false),
 		
 		// Neo4J-Properties
 		NEO4J_LOCATION(false),
@@ -29,9 +30,13 @@ public class PropertyKeyHelper {
 		// BlastDistance specific properties
 		BLAST_RESULT_FILE_LOCATION(false),
 		
-		// Hierarchical/ KMeans specific properties
-		CLUSTER_COUNT(false),
-		AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
+		// Hierarchical specific properties
+		HIERARCHICAL_CLUSTER_COUNT(false),
+		HIERARCHICAL_AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
+		
+		// KMeans specific properties
+		KMEANS_CLUSTER_COUNT(false),
+		KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
 		MAX_ITERATION(false),
 		MIN_AMOUNT_SEQUENCES_IN_CLUSTER(false),
 		
