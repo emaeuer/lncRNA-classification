@@ -15,7 +15,7 @@ public class ClusterSpaceFactory {
 		if (HierarchicalClustering.class == clusterType) {
 			return new HierachicalClusteringSpace(distance, false);
 		} else if (KMeansClustering.class == clusterType) {
-			return new KMeansClusteringSpace(distanceProp);
+			return new KMeansClusteringSpace(distance, false);
 		} else if (CanopyClustering.class == clusterType) {
 			float loose = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.LOOSE_THRESHOLD, Float.class);
 			float tight = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.TIGHT_THRESHOLD, Float.class);

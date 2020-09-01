@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import de.lncrna.classification.clustering.Cluster;
+import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
 import de.lncrna.classification.clustering.algorithms.implementations.KMeansClustering;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.distance.DistanceType;
@@ -18,9 +19,8 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
         private Map<String, List<String>> clusterAssignments;
 
 
-        public KMeansClusteringSpace(DistanceType distanceProp) {
-                super(distanceProp);
-
+        public KMeansClusteringSpace(DistanceType distanceProp, Boolean initFromDB) {
+                super(distanceProp, initFromDB);
         }
 
         @Override
@@ -30,10 +30,10 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
 
                 this.currClusterCentroids = new ArrayList<>(Neo4jDatabaseSingleton.getQueryHelper()
                                 .getRandomSequenceNames(PropertyHandler.HANDLER.getPropertyValue(
-                                                PropertyKeys.MIN_AMOUNT_SEQUENCES_IN_CLUSTER,
+                                                PropertyKeys.KMEANS_MIN_AMOUNT_SEQUENCES_IN_CLUSTER,
                                                 Integer.class),
                                                 PropertyHandler.HANDLER.getPropertyValue(
-                                                                PropertyKeys.CLUSTER_COUNT,
+                                                                PropertyKeys.KMEANS_CLUSTER_COUNT,
                                                                 Integer.class)));
                 this.prevClusterCentroids = new ArrayList<>();
 
@@ -56,9 +56,9 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
                 incrementIterationCounter();
                 if (isTimeToRefresh()) {
                         double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(
-                                        PropertyKeys.AVERAGE_CLUSTER_DISTANCE_THRESHOLD,
+                                        PropertyKeys.KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD,
                                         Double.class);
-                        double averageClusterDistance = calculateAverageClusterDistance();
+                        double averageClusterDistance = calculateAverageClusterDiameter();
 
                         if (averageClusterDistance >= maxAverageClusterDistance) {
                                 return false;
@@ -75,19 +75,24 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
                 this.prevClusterCentroids = new ArrayList<>(this.currClusterCentroids);
                 this.currClusterCentroids = this.currClusterCentroids.stream()
                                 .map(centroid -> Neo4jDatabaseSingleton.getQueryHelper()
-                                                .findClustroid(clusterAssignments.get(centroid),
+                                                .findClustroid(this.clusterAssignments.get(centroid),
                                                                 getDistanceProperties().name()))
                                 .collect(Collectors.toCollection(ArrayList::new));
                 return true;
         }
 
         private boolean isMaxIteration() {
-                return PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.MAX_ITERATION,
+                return PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.KMEANS_MAX_ITERATION,
                                 Integer.class) <= getIterationCounter();
         }
 
         private boolean isTimeToRefresh() {
                 return getIterationCounter() % PropertyHandler.HANDLER.getPropertyValue(
                                 PropertyKeys.STAT_REFRESH_INTERVAL, Integer.class) == 0;
+        }
+
+        @Override
+        protected void initFromDB() {
+             
         }
 }
