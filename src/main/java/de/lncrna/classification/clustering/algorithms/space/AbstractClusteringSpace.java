@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 import de.lncrna.classification.clustering.Cluster;
 import de.lncrna.classification.clustering.algorithms.ClusteringAlgorithm;
@@ -66,21 +67,21 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	}
 
 	public double calculateAverageDistanceWithinCluster() {
-		return parallelAverageCalculation(Cluster::getAverageDistanceWithin);
+		return parallelStreamCalculation(Cluster::getAverageDistanceWithin, true);
 	}
 	
-	public double calculateAverageClusterDiameter() {
-		return parallelAverageCalculation(Cluster::getDiameter);
+	public double calculateMaxClusterDiameter() {
+		return parallelStreamCalculation(Cluster::getDiameter, false);
 	}
 
-	private double parallelAverageCalculation(Function<Cluster<?>, Double> task) {
+	private double parallelStreamCalculation(Function<Cluster<?>, Double> task, boolean calculateAverage) {
 		ExecutorService service = Executors.newWorkStealingPool();
 		
 		List<Future<Double>> tasks = this.clusters.stream()
 			.map(c -> service.submit(() -> task.apply(c)))
 			.collect(Collectors.toList());
 		
-		return tasks.stream()
+		DoubleStream stream = tasks.stream()
 				.mapToDouble(value -> {
 					try {
 						return value.get();
@@ -88,9 +89,13 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 						e1.printStackTrace();
 						return 1;
 					}
-				})
-				.average()
-				.orElse(-1);
+				});
+		
+		if (calculateAverage) {
+			return stream.average().orElse(-1);
+		} else {
+			return stream.max().orElse(-1);
+		}
 	}
 	
 	public void persistClusterInformation() {

@@ -16,12 +16,14 @@ public class StatLogger implements Closeable {
 	private static final Logger LOG = Logger.getLogger("logger");
 	
 	// Merge: <Cluster-ID-1>-<Cluster-ID-2>-<Distance>-<Iteration-Counter>
-	private static final String MERGE_ENTRY_PATTERN = "Merge: %d-%d-%f-%d";
+	private static final String MERGE_ENTRY_PATTERN = "Merge: %s-%s-%f-%d";
 	
 	// Average_Distance: <Average-Cluster-Distance>-<Iteration-Counter>
 	private static final String AVERAGE_CLUSTER_DISTANCE_ENTRY_PATTERN = "Average_Distance: %f-%d";
 
-	private static final String AVERAGE_CLUSTER_DIAMETER_ENTRY_PATTERN = "Average_Diameter: %f-%d";
+	private static final String MAX_CLUSTER_DIAMETER_ENTRY_PATTERN = "Max_Diameter: %f-%d";
+	
+	private static final String CLUSTER_ID_MAPPING_ENTRY_PATTERN = "Mapping: %d-%s";
 	
 	private PrintWriter printer;
 
@@ -42,8 +44,14 @@ public class StatLogger implements Closeable {
 		log(String.format(AVERAGE_CLUSTER_DISTANCE_ENTRY_PATTERN, averageDistance, iterationCounter));
 	}
 	
-	public void logAverageClusterDiameter(double averageClusterDiameter, int iterationCounter) {
-		log(String.format(AVERAGE_CLUSTER_DIAMETER_ENTRY_PATTERN, averageClusterDiameter, iterationCounter));
+	public void logMaxClusterDiameter(double averageClusterDiameter, int iterationCounter) {
+		log(String.format(MAX_CLUSTER_DIAMETER_ENTRY_PATTERN, averageClusterDiameter, iterationCounter));
+	}
+	
+	public void logClusterIdMapping(Cluster<?> cluster) {
+		if (!cluster.getSequences().isEmpty()) {
+			log(String.format(CLUSTER_ID_MAPPING_ENTRY_PATTERN, cluster.getClusterId(), cluster.getSequences().iterator().next()));
+		}
 	}
 	
 	private void log(String logMessage) {

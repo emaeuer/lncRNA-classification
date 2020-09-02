@@ -5,6 +5,8 @@ import de.lncrna.classification.distance.calculation.EditDistanceCalculator;
 import de.lncrna.classification.distance.calculation.NGramDistanceCalculator;
 import de.lncrna.classification.distance.calculation.NeedlemanWunschDistanceCalculator;
 import de.lncrna.classification.distance.calculation.PropertyDistance;
+import de.lncrna.classification.distance.calculation.ShingledNGramDistanceCalculator;
+import de.lncrna.classification.distance.calculation.StandardNGramDistanceCalculator;
 
 public class DistanceCalculatorFactory {
 
@@ -24,6 +26,10 @@ public class DistanceCalculatorFactory {
 				return new NeedlemanWunschDistanceCalculator();
 			case Property_Distance:
 				return new PropertyDistance();
+			case Shingled_N_Gram_Distance:
+				return new ShingledNGramDistanceCalculator();
+			case Standard_N_Gram_Distance:
+				return new StandardNGramDistanceCalculator();
 		}
 		return null;
 	}

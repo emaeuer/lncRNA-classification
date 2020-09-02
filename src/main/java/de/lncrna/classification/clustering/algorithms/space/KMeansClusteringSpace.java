@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
 import de.lncrna.classification.clustering.Cluster;
-import de.lncrna.classification.clustering.algorithms.ImplementedClusteringAlgorithms;
 import de.lncrna.classification.clustering.algorithms.implementations.KMeansClustering;
 import de.lncrna.classification.db.Neo4jDatabaseSingleton;
 import de.lncrna.classification.distance.DistanceType;
@@ -58,7 +58,7 @@ public class KMeansClusteringSpace extends AbstractClusteringSpace<KMeansCluster
                         double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(
                                         PropertyKeys.KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD,
                                         Double.class);
-                        double averageClusterDistance = calculateAverageClusterDiameter();
+                        double averageClusterDistance = calculateMaxClusterDiameter();
 
                         if (averageClusterDistance >= maxAverageClusterDistance) {
                                 return false;

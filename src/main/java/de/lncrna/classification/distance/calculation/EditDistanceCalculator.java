@@ -12,7 +12,7 @@ public class EditDistanceCalculator extends DistanceCalculator {
 	
 	@Override
 	public float getDistance(DistancePair pair) {
-		return calculator.getDistance(pair.getSequence1(), pair.getSequence2());
+		return 1 - calculator.getDistance(pair.getSequence1(), pair.getSequence2());
 	}
 
 	@Override

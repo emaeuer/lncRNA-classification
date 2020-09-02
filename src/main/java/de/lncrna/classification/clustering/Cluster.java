@@ -30,7 +30,6 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	private double diameter = -1;
 	
 	public final int clusterId;
-
 	
 	public Cluster(final T algorithm, List<String> sequences, String clustroid) {
 		this.clusterId = NEXT_CLUSTER_ID.getAndIncrement();

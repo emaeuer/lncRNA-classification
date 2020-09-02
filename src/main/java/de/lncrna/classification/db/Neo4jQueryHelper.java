@@ -117,7 +117,7 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq1 " +
 			"UNWIND cluster AS seq2 " +
-			"MATCH (seq1:Sequence)-[r:distance]-(seq2:Sequence) " +
+			"MATCH (seq1:Sequence)-[r:distance]->(seq2:Sequence) " +
 			"RETURN max(r.%s) AS maxDistance";
 	
 	public static final String GET_AVERAGE_DISTANCE_OF_SEQUENCE_WITHIN_CLUSTER =
@@ -125,10 +125,8 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WHERE seq.seqName IN %1$s AND seq.seqName <> \"%2$s\" " +
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq " +
-			"OPTIONAL MATCH (s:Sequence {seqName:\"%2$s\"})-[r:distance]-(seq:Sequence) " +
-			"RETURN avg(coalesce(r.%3$s, 1)) AS avgDistance";
-	
-	
+			"OPTIONAL MATCH (s:Sequence {seqName:\"%2$s\"})-[r:distance]->(seq:Sequence) " +
+			"RETURN avg(coalesce(r.%3$s, 1)) AS avgDistance";	
 	
 	public static final String GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID =
 			"MATCH (seq:Sequence {seqName:\"%1$s\"}) " +

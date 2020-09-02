@@ -33,6 +33,7 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 		
 		sequenceNames.parallelStream()
 			.map(sequence -> new Cluster<>(new HierarchicalClustering(getDistanceProperties()), sequence))
+			.peek(cluster -> getStatLogger().logClusterIdMapping(cluster))
 			.forEach(getClusters()::add);		
 		
 		LOG.log(Level.INFO, String.format("Initialized %d clusters", getClusters().size()));
@@ -71,13 +72,13 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 		if (getIterationCounter() % refreshInterval == 0) {
 			double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.HIERARCHICAL_AVERAGE_CLUSTER_DISTANCE_THRESHOLD, Double.class);
 			double averageClusterDistance = handleAverageDistanceWithinCluster();
-			double averageDiameter = handleAverageClusterDiameter();
+			double maxDiameter = handleMaxClusterDiameter();
 			
 			if (averageClusterDistance > maxAverageClusterDistance) {
 				return false;
 			}
 			
-			LOG.log(Level.INFO, String.format("Hierarchical clustering: Iteration %d; current number of clusters %d with average cluster distance of %f and diameter of %f", getIterationCounter(), getClusters().size(), averageClusterDistance, averageDiameter));
+			LOG.log(Level.INFO, String.format("Hierarchical clustering: Iteration %d; current number of clusters %d with average cluster distance of %f and a maximal diameter of %f", getIterationCounter(), getClusters().size(), averageClusterDistance, maxDiameter));
 		}
 		
 		getClusters().remove(c2);
@@ -94,12 +95,12 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 		return averageClusterDistance;
 	}
 	
-	private double handleAverageClusterDiameter() {
-		double averageClusterDiameter = calculateAverageClusterDiameter();
+	private double handleMaxClusterDiameter() {
+		double maxClusterDiameter = calculateMaxClusterDiameter();
 		
-		getStatLogger().logAverageClusterDiameter(averageClusterDiameter, getIterationCounter());
+		getStatLogger().logMaxClusterDiameter(maxClusterDiameter, getIterationCounter());
 		
-		return averageClusterDiameter;
+		return maxClusterDiameter;
 	}
 	
 	private boolean breakCondition() {
