@@ -8,6 +8,7 @@ public enum DistanceType {
 	Blast_Distance,
 	Property_Distance, 
 	Standard_N_Gram_Distance, 
-	Shingled_N_Gram_Distance;
+	Shingled_N_Gram_Distance, 
+	Hamming_Distance;
 
 }

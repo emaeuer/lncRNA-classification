@@ -97,6 +97,7 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	public double getAverageDistanceWithin() {
 		if (this.averageDistanceWithin == -1) {
 			this.averageDistanceWithin = Neo4jDatabaseSingleton.getQueryHelper().getAverageClusterDistance(getSequences(), this.algorithm.getDistanceAlgortithm().name());
+			
 		} 
 		return this.averageDistanceWithin;
 	}
@@ -119,10 +120,18 @@ public class Cluster<T extends ClusteringAlgorithm> {
 	}
 	
 	private double calculateSilhoutteForSequence(String sequence) {
+		if (getClusterSize() <= 1) {
+			return 0;
+		}
+		
 		double averageDistanceWithinCluster = Neo4jDatabaseSingleton.getQueryHelper().getAverageDistanceOfSequenceInCluster(sequence, getSequences(), this.algorithm.getDistanceAlgortithm().name());
 		double distanceToNextCluster = Neo4jDatabaseSingleton.getQueryHelper().getAverageDistanceToNearestCluster(sequence, this.algorithm.getDistanceAlgortithm().name(), this.algorithm.getName());
 		
 		double result = (distanceToNextCluster - averageDistanceWithinCluster) / Math.max(averageDistanceWithinCluster, distanceToNextCluster);
+		
+		if (Double.isNaN(result)) {
+			result = 0;
+		}
 		
 		return result;
 	}

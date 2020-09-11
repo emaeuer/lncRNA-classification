@@ -43,6 +43,12 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 
 	@Override
 	public boolean nextIteration() {
+		incrementIterationCounter();
+		
+		if (!checkStatisticsIfNeccessary()) {
+			return false;
+		}
+		
 		Cluster<HierarchicalClustering> c1 = null;
 		Cluster<HierarchicalClustering> c2 = null;
 		
@@ -64,10 +70,15 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 			c2 = findContainingCluster(current.getSequenceName2());
 		} while (c1 == c2 || c1 == null || c2 == null);
 		
-		incrementIterationCounter();
-		
 		getStatLogger().logMerge(c1, c2, current.getDistance(), getIterationCounter());
 		
+		getClusters().remove(c2);
+		c1.mergeWithOther(c2);		
+		
+		return true;
+	}
+
+	private boolean checkStatisticsIfNeccessary() {
 		int refreshInterval = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.STAT_REFRESH_INTERVAL, Integer.class);
 		if (getIterationCounter() % refreshInterval == 0) {
 			double maxAverageClusterDistance = PropertyHandler.HANDLER.getPropertyValue(PropertyKeys.HIERARCHICAL_AVERAGE_CLUSTER_DISTANCE_THRESHOLD, Double.class);
@@ -80,10 +91,6 @@ public class HierachicalClusteringSpace extends AbstractClusteringSpace<Hierarch
 			
 			LOG.log(Level.INFO, String.format("Hierarchical clustering: Iteration %d; current number of clusters %d with average cluster distance of %f and a maximal diameter of %f", getIterationCounter(), getClusters().size(), averageClusterDistance, maxDiameter));
 		}
-		
-		getClusters().remove(c2);
-		c1.mergeWithOther(c2);		
-		
 		return true;
 	}
 	

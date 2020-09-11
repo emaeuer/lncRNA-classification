@@ -128,7 +128,8 @@ public class PropertyDistance extends DistanceCalculator {
 		
 		float distance = Double.valueOf(SequenceProperties.calculateDistance(seqProp1, seqProp2)).floatValue();
 		
-		return distance < 0.05 ? distance : -1f;
+		return distance;
+//		return distance < 0.05 ? distance : -1f;
 	}
 
 	@Override

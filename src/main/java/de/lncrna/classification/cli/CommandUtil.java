@@ -2,9 +2,7 @@ package de.lncrna.classification.cli;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,12 +29,15 @@ public class CommandUtil {
 		}
 
 		if (sequenceNumber != -1) {
-			List<RNASequence> randomSequences = new ArrayList<>();
-			Random rand = new Random(49583498340l);
-			for (int i = 0; i < sequenceNumber; i++) {
-				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
-			}
-			sequences = randomSequences;
+			sequences.sort((s1, s2) -> s1.getDescription().compareTo(s2.getDescription())); 
+			sequences = sequences.subList(0, sequenceNumber);
+			
+//			List<RNASequence> randomSequences = new ArrayList<>();
+//			Random rand = new Random(49583498340l);
+//			for (int i = 0; i < sequenceNumber; i++) {
+//				randomSequences.add(sequences.remove(rand.nextInt(sequences.size())));
+//			}
+//			sequences = randomSequences;
 		}
 		return sequences;
 	}

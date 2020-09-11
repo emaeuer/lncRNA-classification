@@ -33,8 +33,7 @@ public class ClusterSpaceFactory {
 			case Hierarchical:
 				return new HierachicalClusteringSpace(distance, true);	
 			case K_Means:
-				
-				break;
+				return new KMeansClusteringSpace(distance, true);
 		}
 		return null;
 	}

@@ -221,20 +221,6 @@ public class ServerNeo4jQueryHelper implements Neo4jQueryHelper<ServerNeo4jHandl
 	}
 
 	@Override
-	public double getAverageDistanceToClusterOfNearestClustroid(String sequence, String distanceName, String clusteringName) {
-		return this.handler.executeQuery(
-				String.format(
-						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID,
-						sequence, distanceName, clusteringName, 1), 
-				r -> {
-					return r.stream()
-							.map(m -> m.get("avgDistance").asDouble())
-							.findFirst()
-							.orElse(1.0);
-				});
-	}
-
-	@Override
 	public double getAverageDistanceToNearestCluster(String sequence, String distanceName, String clusteringName) {
 		return this.handler.executeQuery(
 				String.format(

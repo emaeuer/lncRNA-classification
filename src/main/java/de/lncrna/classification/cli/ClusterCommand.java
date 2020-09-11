@@ -56,7 +56,13 @@ public class ClusterCommand implements Runnable {
 		private double maxAverageClusterDistance;
 
 		@Option(names = {"-m", "--maxIterations"}, defaultValue = "10000", description = "Clustering stops when maximal Iterations are reached.") 
-		private double maxIterations;
+		private int maxIterations;
+		
+		@Option(names = {"-rn", "--numberOfRetries"}, defaultValue = "100", description = "Number of tries of clustering") 
+		private int numberOfRetries;
+		
+		@Option(names = {"-dn", "--minNumberOfDistances"}, defaultValue = "20", description = "Minimal number of distances a node has to have to get initially selected as clustroid") 
+		private int minNumberOfDistances;
 		
 	}
 	
@@ -123,6 +129,9 @@ public class ClusterCommand implements Runnable {
 		if (parameters != null && parameters.kmeans != null) {
 			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD, parameters.kmeans.maxAverageClusterDistance);
 			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_CLUSTER_COUNT, parameters.kmeans.clusterCount);
+			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_NUMBER_OF_RETRIES, parameters.kmeans.numberOfRetries);
+			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_MAX_ITERATION, parameters.kmeans.maxIterations);
+			CLIHelper.refreshIfNecessary(PropertyKeys.KMEANS_MIN_NUMBER_OF_DISTANCES, parameters.kmeans.minNumberOfDistances);
 		}
 		
 		if (parameters != null && parameters.hierarchical != null) {

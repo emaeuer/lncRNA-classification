@@ -24,10 +24,22 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"RETURN collect(s_name) AS s_names";
 
 	public static final String GET_SEQUENCES_OF_CLUSTROID = 
-			"MATCH (clustroids:Sequence) - [d:distance] - (s:Sequence) " +
-			"WHERE clustroids.seqName IN %s " +
-			"WITH s.seqName AS s_name, min(d.%s) AS min_distance, clustroids.seqName AS c_name " +
-			"RETURN c_name, collect(s_name) AS s_names";
+			"MATCH (s:Sequence) " +
+			"WHERE NOT s.seqName IN %1$s " +
+			"WITH collect(s) AS sequences " +
+			"MATCH (clustroid:Sequence) " +
+			"WHERE clustroid.seqName IN %1$s " +
+			"WITH sequences, collect(clustroid) AS clustroids " +
+			"UNWIND sequences AS sequence " +
+			"CALL { " +
+			"	 WITH sequence, clustroids " +
+			"    MATCH (sequence:Sequence) - [d:distance] - (clustroid:Sequence) " +
+			"	 WHERE clustroid IN clustroids " +
+			"    RETURN sequence.seqName AS seqName, clustroid.seqName AS clustroidName " +
+			"    ORDER BY d.%2$s " +
+			"    LIMIT 1 " +
+			"} " +
+			"RETURN  clustroidName AS c_name, collect(seqName) AS s_names";
 	
 	public static final String INSERT_ALL_SEQUENCES = 
 			"MERGE (:Sequence {seqName:\"%s\"})";
@@ -65,16 +77,16 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"ORDER BY avgDistances.avgDistance " +
 			"LIMIT 1";
 	
-	public static final String GET_AVERAGE_DISTANCE_WITHIN_CLUSTER = 
+	public static final String GET_AVERAGE_DISTANCE_WITHIN_CLUSTER =
 			"MATCH (seq:Sequence) " +
-			"WHERE seq.seqName IN %s " +
+			"WHERE seq.seqName IN %1$s " +
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq1 " +
 			"UNWIND cluster AS seq2 " +
-			"OPTIONAL MATCH (seq1:Sequence) -[r:distance]- (seq2:Sequence) " +
-			"WITH seq1, r.%s AS distance, seq2 " +
-			"WHERE seq1 <> seq2 " +
-			"RETURN avg(coalesce(distance, %d))  AS avgClusterDistance";
+			"OPTIONAL MATCH (seq1:Sequence) -[r:distance]- (seq2:Sequence) " +				
+			"WITH CASE WHEN seq1 = seq2 THEN 0 WHEN r.%2$s IS NULL THEN %3$d ELSE r.%2$s END AS distance, CASE WHEN size(cluster) > 50 THEN 50 ELSE size(cluster) END AS clusterSize " +
+			"LIMIT 2500 " + // Equal to 50^2
+			"RETURN CASE clusterSize WHEN 1 THEN 0 ELSE sum(distance) / (clusterSize^2 - clusterSize) END AS avgClusterDistance";
 	
 	public static final String GET_SEQUENCES_WITHIN_TRESHOLD =
 			"OPTIONAL MATCH (:Sequence{seqName:\"%1$s\"})-[r:distance]-(seq:Sequence) " +  
@@ -110,7 +122,6 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WHERE ID(c) = %s " +
 			"SET c.persisted = true";
 	
-	// TODO Non existing relations are not considered --> should eventually get distance 1 
 	public static final String GET_MAXIMAL_DISTINCE_WITHIN_CLUSTER = 
 			"MATCH (seq:Sequence) " +
 			"WHERE seq.seqName IN %s " +
@@ -118,6 +129,8 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"UNWIND cluster AS seq1 " +
 			"UNWIND cluster AS seq2 " +
 			"MATCH (seq1:Sequence)-[r:distance]->(seq2:Sequence) " +
+			"WITH r " +
+			"LIMIT 2500 " +
 			"RETURN max(r.%s) AS maxDistance";
 	
 	public static final String GET_AVERAGE_DISTANCE_OF_SEQUENCE_WITHIN_CLUSTER =
@@ -125,23 +138,22 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 			"WHERE seq.seqName IN %1$s AND seq.seqName <> \"%2$s\" " +
 			"WITH collect(seq) AS cluster " +
 			"UNWIND cluster AS seq " +
-			"OPTIONAL MATCH (s:Sequence {seqName:\"%2$s\"})-[r:distance]->(seq:Sequence) " +
+			"OPTIONAL MATCH (s:Sequence {seqName:\"%2$s\"})-[r:distance]-(seq:Sequence) " +
 			"RETURN avg(coalesce(r.%3$s, 1)) AS avgDistance";	
 	
-	public static final String GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID =
+	public static final String GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID =	
 			"MATCH (seq:Sequence {seqName:\"%1$s\"}) " +
-			"WITH seq " +
-			"MATCH (clustroid:Sequence)-[:clustroid_of]-(:Cluster {algorithm:\"%3$s\"}) " + 
-			"MATCH (seq)-[:in_cluster]-(:Cluster {algorithm:\"%3$s\"})-[:clustroid_of]-(clustroidOfSeq:Sequence) " +
-			"WHERE clustroid <> clustroidOfSeq " +
-			"WITH seq, clustroid " +
-			"MATCH (seq:Sequence)-[d:distance]-(clustroid:Sequence) " +  
-			"WITH seq, d, clustroid " + 
-			"ORDER BY d.%2$s " + 
-			"LIMIT 1 " + 
-			"MATCH (cSeq:Sequence)-[:in_cluster]-(:Cluster {algorithm:\"%3$s\"})-[:clustroid_of]-(clustroid:Sequence) " +
-			"OPTIONAL MATCH (seq:Sequence)-[d:distance]-(cSeq:Sequence) " + 
-			"RETURN avg(coalesce(d.%2$s, %4$d)) AS avgDistance";
+			"MATCH (seq)-[:in_cluster]-(clusterOfSeq:Cluster {algorithm:\"%3$s\"})-[:clustroid_of]-(clustroidOfSeq:Sequence) " + 
+			"MATCH (seq:Sequence)-[d:distance]-(clustroidOther:Sequence)-[:in_cluster]-(otherCluster:Cluster {algorithm:\"%3$s\"}) " +
+			"WHERE otherCluster <> clusterOfSeq " +
+			"WITH seq, otherCluster " + 
+			"ORDER BY d.%2$s " +
+			"LIMIT 1 " +
+			"MATCH (otherSequence:Sequence)-[:in_cluster]-(otherCluster:Cluster) " +
+			"WITH collect(otherSequence) AS sequencesOfOtherCluster, seq " +
+			"UNWIND sequencesOfOtherCluster AS otherSequence " +
+			"OPTIONAL MATCH (seq:Sequence)-[d:distance]-(otherSequence:Sequence) " + 
+			"RETURN coalesce(avg(coalesce(d.%2$s, %4$f)), %4$f) AS avgDistance";
 	
 	public static final String GET_AVERAGE_DISTANCE_TO_NEAREST_CLUSTER =
 			"MATCH (seq:Sequence {seqName:\"%1$s\"})-[:in_cluster]-(c:Cluster {algorithm:\"%3$s\"}) " + 
@@ -188,8 +200,6 @@ public interface Neo4jQueryHelper <T extends Neo4jHandler<R>, R> {
 	public void addDistance(DistancePair item);
 
 	public double getAverageDistanceOfSequenceInCluster(String sequence, Collection<String> sequences, String distanceName);
-
-	public double getAverageDistanceToClusterOfNearestClustroid(String sequence, String distanceName, String clusteringName);
 
 	public double getAverageDistanceToNearestCluster(String sequence, String distanceName, String clusteringName);
 

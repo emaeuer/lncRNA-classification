@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
@@ -67,18 +67,22 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	}
 
 	public double calculateAverageDistanceWithinCluster() {
-		return parallelStreamCalculation(Cluster::getAverageDistanceWithin, true);
+		return parallelStreamCalculation((c, nr) -> c.getAverageDistanceWithin() * (Integer.valueOf(c.getClusterSize()).doubleValue() / nr), true);
 	}
 	
 	public double calculateMaxClusterDiameter() {
-		return parallelStreamCalculation(Cluster::getDiameter, false);
+		return parallelStreamCalculation((c, nr) -> c.getDiameter(), false);
 	}
 
-	private double parallelStreamCalculation(Function<Cluster<?>, Double> task, boolean calculateAverage) {
+	private double parallelStreamCalculation(BiFunction<Cluster<?>, Integer, Double> task, boolean calculateAverage) {
 		ExecutorService service = Executors.newWorkStealingPool();
 		
+		int sequenceNumber = this.clusters.parallelStream()
+			.mapToInt(Cluster::getClusterSize)
+			.sum();
+		
 		List<Future<Double>> tasks = this.clusters.stream()
-			.map(c -> service.submit(() -> task.apply(c)))
+			.map(c -> service.submit(() -> task.apply(c, sequenceNumber)))
 			.collect(Collectors.toList());
 		
 		DoubleStream stream = tasks.stream()
@@ -92,9 +96,10 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 				});
 		
 		if (calculateAverage) {
-			return stream.average().orElse(-1);
+			// average is calculated by sum because the values should already be weighted
+			return stream.sum();
 		} else {
-			return stream.max().orElse(-1);
+			return stream.max().orElse(0);
 		}
 	}
 	
@@ -123,6 +128,10 @@ public abstract class AbstractClusteringSpace<T extends ClusteringAlgorithm> {
 	public Map<Integer, Map<String, Double>> calculateSilhouettes() {
 		return getClusters().parallelStream()
 			.collect(Collectors.toMap(Cluster::getClusterId, Cluster::calculateSilhouettes));
+	}
+	
+	public void resetIterationCounter() {
+		this.iterationCounter = 0;
 	}
 	
 }

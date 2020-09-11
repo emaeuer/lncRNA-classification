@@ -2,6 +2,7 @@ package de.lncrna.classification.distance;
 
 import de.lncrna.classification.distance.calculation.BlastDistanceCalculator;
 import de.lncrna.classification.distance.calculation.EditDistanceCalculator;
+import de.lncrna.classification.distance.calculation.HammingDistanceCalculator;
 import de.lncrna.classification.distance.calculation.NGramDistanceCalculator;
 import de.lncrna.classification.distance.calculation.NeedlemanWunschDistanceCalculator;
 import de.lncrna.classification.distance.calculation.PropertyDistance;
@@ -30,6 +31,10 @@ public class DistanceCalculatorFactory {
 				return new ShingledNGramDistanceCalculator();
 			case Standard_N_Gram_Distance:
 				return new StandardNGramDistanceCalculator();
+			case Hamming_Distance:
+				return new HammingDistanceCalculator();
+		default:
+			break;
 		}
 		return null;
 	}

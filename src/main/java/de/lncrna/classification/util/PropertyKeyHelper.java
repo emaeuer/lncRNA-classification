@@ -38,7 +38,8 @@ public class PropertyKeyHelper {
 		KMEANS_CLUSTER_COUNT(false),
 		KMEANS_AVERAGE_CLUSTER_DISTANCE_THRESHOLD(false),
 		KMEANS_MAX_ITERATION(false),
-		KMEANS_MIN_AMOUNT_SEQUENCES_IN_CLUSTER(false),
+		KMEANS_MIN_NUMBER_OF_DISTANCES(false),
+		KMEANS_NUMBER_OF_RETRIES(false),
 		
 		// Canopy clustering specific properties
 		LOOSE_THRESHOLD(false),

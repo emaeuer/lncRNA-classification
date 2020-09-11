@@ -59,7 +59,6 @@ public class ScoreCommand implements Runnable {
 		try (PrintWriter printer = new PrintWriter(this.outputFile)) {
 			silhouettes.entrySet()
 				.stream()
-				.peek(c -> System.out.println(c.getValue()))
 				.peek(c -> printer.append("Cluster-" + c.getKey()))
 				.map(e -> e.getValue())
 				.peek(m -> m.values()

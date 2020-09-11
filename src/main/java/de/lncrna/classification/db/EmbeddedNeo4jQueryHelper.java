@@ -185,8 +185,6 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 			}
 		}
 		
-		
-		
 		// Insert new clusters corresponding to this configuration
 		clusters.stream()
 			.filter(c -> c.getClusterSize() > 1) // only persist 'real' clusters with at least two sequences
@@ -208,6 +206,11 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 	}
 
 	private String toCollectionString(Collection<String> sequences) {
+		if (sequences == null || sequences.isEmpty()) {
+			return "[]";
+		}
+		
+		
 		StringBuilder builder = new StringBuilder("[");
 		sequences.stream().forEach(s -> builder.append(String.format("\"%s\", ", s)));
 
@@ -248,25 +251,10 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 						toCollectionString(sequences), sequence, distanceName), 
 				r -> {
 					return r.stream()
-							.map(m -> m.get("avgDistance"))
+							.map(m -> m.getOrDefault("avgDistance", 0.0))
 							.map(s -> Double.valueOf((double) s))
 							.findFirst()
 							.orElse(0.0);
-				});
-	}
-
-	@Override
-	public double getAverageDistanceToClusterOfNearestClustroid(String sequence, String distanceName, String clusteringName) {
-		return this.handler.executeQuery(
-				String.format(
-						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID,
-						sequence, distanceName, clusteringName, 1), 
-				r -> {
-					return r.stream()
-							.map(m -> m.get("avgDistance"))
-							.map(s -> Double.valueOf((double) s))
-							.findFirst()
-							.orElse(1.0);
 				});
 	}
 
@@ -275,11 +263,11 @@ public class EmbeddedNeo4jQueryHelper implements Neo4jQueryHelper<EmbeddedNeo4jH
 		return this.handler.executeQuery(
 				String.format(
 						Neo4jQueryHelper.GET_AVERAGE_DISTANCE_TO_CLUSTER_OF_NEAREST_CLUSTROID,
-						sequence, distanceName, clusteringName, 1), 
+						sequence, distanceName, clusteringName, 1.0), 
 				r -> {
 					return r.stream()
 							.map(m -> m.get("avgDistance"))
-							.map(s -> Double.valueOf(s == null ? 1.0 : (double) s))
+							.map(s -> Double.valueOf(s == null ? "1.0" : s.toString()))
 							.findFirst()
 							.orElse(1.0);
 				});

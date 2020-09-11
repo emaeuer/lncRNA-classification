@@ -20,7 +20,8 @@ public class DistancePairSubscription implements Subscription {
 	
 	private final Subscriber<? super DistancePair> subscriber;
 	
-	private final BlockingQueue<DistancePair> values = new LinkedBlockingQueue<>(20000);
+	private final BlockingQueue<DistancePair> values = new LinkedBlockingQueue<>(50);
+//	private final BlockingQueue<DistancePair> values = new LinkedBlockingQueue<>(100000);
 	
 	private ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("subscription-helper-thread-%d").build());
 	
